@@ -14,7 +14,7 @@ Ext.define("tag-management", {
 
     config: {
       defaultSettings: {
-        useLookback: false
+        useLookback: true
       }
     },
 
