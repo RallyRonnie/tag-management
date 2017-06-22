@@ -1,4 +1,12 @@
 # Tag Management
+An app to view tag usage metrics and manage tags.  
+
+** App In Progress**
+
+###App settings
+Enable Lookback Usage - (Default = True).  If enabled, this app will use the lookback API to determine tag usage.  If false,
+the app will use the WSAPI api to determine tag usage.  For larger workspaces, the WSAPI will perform more slowly than the lookback
+API (if the lookback API is not slow that day).
 
 ## Summary/Description
 
@@ -9,13 +17,13 @@
 
 ### First Load
 
-If you've just downloaded this from github and you want to do development, 
+If you've just downloaded this from github and you want to do development,
 you're going to need to have these installed:
 
  * node.js
  * grunt-cli
  * grunt-init
- 
+
 Since you're getting this from github, we assume you have the command line
 version of git also installed.  If not, go get git.
 
@@ -26,15 +34,15 @@ to get set up to develop:
 
 ### Structure
 
-  * src/javascript:  All the JS files saved here will be compiled into the 
+  * src/javascript:  All the JS files saved here will be compiled into the
   target html file
-  * src/style: All of the stylesheets saved here will be compiled into the 
+  * src/style: All of the stylesheets saved here will be compiled into the
   target html file
-  * test/fast: Fast jasmine tests go here.  There should also be a helper 
+  * test/fast: Fast jasmine tests go here.  There should also be a helper
   file that is loaded first for creating mocks and doing other shortcuts
   (fastHelper.js) **Tests should be in a file named <something>-spec.js**
   * test/slow: Slow jasmine tests go here.  There should also be a helper
-  file that is loaded first for creating mocks and doing other shortcuts 
+  file that is loaded first for creating mocks and doing other shortcuts
   (slowHelper.js) **Tests should be in a file named <something>-spec.js**
   * templates: This is where templates that are used to create the production
   and debug html files live.  The advantage of using these templates is that
@@ -50,10 +58,10 @@ to get set up to develop:
         "password":"secret",
         "server": "https://rally1.rallydev.com"
     }
-  
+
 ### Usage of the grunt file
 ####Tasks
-    
+
 ##### grunt debug
 
 Use grunt debug to create the debug html file.  You only need to run this when you have added new files to
@@ -65,7 +73,7 @@ Use grunt build to create the production html file.  We still have to copy the h
 
 ##### grunt test-fast
 
-Use grunt test-fast to run the Jasmine tests in the fast directory.  Typically, the tests in the fast 
+Use grunt test-fast to run the Jasmine tests in the fast directory.  Typically, the tests in the fast
 directory are more pure unit tests and do not need to connect to Rally.
 
 ##### grunt test-slow
@@ -107,5 +115,3 @@ Run this to watch files (js and css).  When a file is saved, the task will autom
 ##### grunt --help  
 
 Get a full listing of available targets.
-
-
