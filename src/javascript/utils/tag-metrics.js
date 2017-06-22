@@ -68,7 +68,10 @@ Ext.define('CATS.tag-management.utils.TagMetrics',{
             tagDate = Rally.util.DateTime.fromIsoString(snapshots[i].raw._ValidFrom);
            for (var j=0; j<tags.length; j++){
              if (!tagHash[tags[j]]){
-               tagHash[tags[j]] = { count: 1 };
+               tagHash[tags[j]] = {
+                 Name: 'DELETED [' + tags[j] + ']',
+                 count: 1
+               };
              }
 
              if (!tagHash[tags[j]].lastUsed || tagHash[tags[j]].lastUsed < tagDate){
@@ -93,6 +96,11 @@ Ext.define('CATS.tag-management.utils.TagMetrics',{
 
       var data = Ext.Object.getValues(this.tagHash);
 
+      var beforeDate = null;
+      if (monthsSinceUsed){
+        beforeDate = Rally.util.DateTime.add(new Date(), "month", -monthsSinceUsed);
+      }
+
       if (usageLessThan || monthsSinceUsed || !showArchived || !showUnused){
         data = Ext.Array.filter(data, function(d){
           var show = true;
@@ -101,8 +109,8 @@ Ext.define('CATS.tag-management.utils.TagMetrics',{
             return false;
           }
 
-          if (monthsSinceUsed){
-
+          if (beforeDate && beforeDate < d.lastUsed){
+             return false;
           }
 
           if (!showArchived && d.Archived){

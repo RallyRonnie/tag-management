@@ -151,7 +151,7 @@ Ext.define("tag-management", {
        });
        usage.on('change', this._updateView, this);
 
-       selectorBox.add({
+       var usedSince = selectorBox.add({
          xtype: 'rallynumberfield',
          fieldLabel: 'Months Since Last Usage',
          labelAlign: 'right',
@@ -162,7 +162,7 @@ Ext.define("tag-management", {
          minValue: 0,
          maxValue: 120
        });
-       usage.on('change', this._updateView, this);
+       usedSince.on('change', this._updateView, this);
 
        this._toggleButton(null,null,true);
 
@@ -365,14 +365,13 @@ Ext.define("tag-management", {
          model: 'Tag',
          fetch: ['ObjectID','Name','Archived','CreationDate'],
          pageSize: 2000,
-         filters: this.getTagFilters(),
+         //filters: this.getTagFilters(),
          limit: "Infinity"
       }).load({
         callback: function(records,operation,success){
           if (operation.wasSuccessful()){
               deferred.resolve(records);
           } else {
-             console.log('operation', operation.error);
               deferred.reject(operation.error.errors.join(","));
           }
         }
