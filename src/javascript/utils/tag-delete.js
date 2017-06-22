@@ -19,7 +19,7 @@ Ext.define('CATS.tag-management.utils.menu.bulk.Delete', {
         onActionComplete: function(){
             //         console.log('onActionComplete');
         },
-        text: 'Delete',
+        text: 'Delete...',
 
        handler: function () {
            this._deleteRecords(this.records, null);

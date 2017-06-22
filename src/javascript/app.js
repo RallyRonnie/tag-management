@@ -336,13 +336,36 @@ Ext.define("tag-management", {
         });
         return deferred.promise;
     },
+    getTagFilters: function(){
+      var nameValue = this.down('#txtName') && this.down('#txtName').getValue();
+        if (nameValue){
+          return [{
+            property: 'Name',
+            operator: 'contains',
+            value: nameValue
+          }];
+        }
+        return [];
+    },
+    getArtifactFilters: function(){
+        var nameValue = this.down('#txtName') && this.down('#txtName').getValue();
+        if (nameValue){
+          return [{
+            property: 'Tags.Name',
+            operator: 'contains',
+            value: nameValue
+          }];
+        }
+        return [];
+    },
     _fetchTags: function(){
       var deferred = Ext.create('Deft.Deferred');
 
       Ext.create('Rally.data.wsapi.Store',{
          model: 'Tag',
          fetch: ['ObjectID','Name','Archived','CreationDate'],
-          pageSize: 2000,
+         pageSize: 2000,
+         filters: this.getTagFilters(),
          limit: "Infinity"
       }).load({
         callback: function(records,operation,success){
@@ -360,13 +383,12 @@ Ext.define("tag-management", {
       var deferred = Ext.create('Deft.Deferred');
 
       Ext.create('Rally.data.lookback.SnapshotStore',{
-
          fetch: ['Tags','_ValidFrom','_ValidTo',"_PreviousValues.Tags"],
          find: {
             "Tags": {$exists: true},
             "_PreviousValues.Tags": {$exists: true}
-          },
-          removeUnauthorizedSnapshots: true,
+         },
+         removeUnauthorizedSnapshots: true,
          limit: "Infinity"
       }).load({
         callback: function(records,operation,success){
