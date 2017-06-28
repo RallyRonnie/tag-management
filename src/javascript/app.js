@@ -21,6 +21,7 @@ Ext.define("tag-management", {
     launch: function() {
 
       this.tagMetrics = Ext.create('CATS.tag-management.utils.TagMetrics',{});
+      //this.tagMetrics.on('refreshcount', this._updateTagData, this);
       this.subscribe('tagDataUpdated', this._updateTagData, this);
 
       this._fetchPortfolioItemTypes().then({
@@ -57,7 +58,8 @@ Ext.define("tag-management", {
     _updateView: function(bt){
       this.logger.log('_updateView', bt);
       this.setLoading(false);
-      this.unsubscribe('tagDataLoaded');
+      this.tagMetrics.un('update');
+    //  this.unsubscribe('tagDataLoaded');
 
       this.down('#gridBox').removeAll();
 
@@ -265,14 +267,18 @@ Ext.define("tag-management", {
     },
     _updateRequested: function(){
        this.logger.log('_updateRequested');
-       this.subscribe('tagDataLoaded', this._updateView, this);
+      // this.subscribe('tagDataLoaded', this._updateView, this);
+       if (this.tagMetrics._isLoaded(this.getShowHistory())){
+         this._updateView();
+       } else {
+         this.tagMetrics.on('update', this._updateView, this);
+         this.setLoading(true);
+       }
 
-       this.setLoading(true);
-
-       var me = this;
-       Ext.defer(function(){
-         me.publish('requestDataStatus', me.getShowHistory());
-       },100, this);
+      //  var me = this;
+      //  Ext.defer(function(){
+      //    me.publish('requestDataStatus', me.getShowHistory());
+      //  },1000, this);
 
     },
     // _buildTagMetrics: function(tagRecords){

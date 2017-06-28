@@ -3,10 +3,6 @@ Ext.define('CATS.tag-management.utils.TagMetrics',{
     tagHash: {},
     mixins: {
            observable: 'Ext.util.Observable',
-           messageable: 'Rally.Messageable'
-
-      //  },{
-      //    messageable: 'Rally.Messageable'
        },
 
     tagsLoaded: false,
@@ -16,9 +12,6 @@ Ext.define('CATS.tag-management.utils.TagMetrics',{
     constructor: function(config){
        this.getExtendedTagModel();
        this.mixins.observable.constructor.call(this, config);
-       this.mixins.messageable.constructor.call(this, config);
-
-       this.subscribe(this, 'requestDataStatus', this._onStatusRequested, this);
     },
 
     addTagRecords: function(tagRecords){
@@ -64,10 +57,11 @@ Ext.define('CATS.tag-management.utils.TagMetrics',{
              tagHash[tags[j]].count++;
            }
       }
-      this.fireEvent('update', this);
+
       this.tagUsageLoaded = true;
-      this.publish('tagDataLoaded', this);
       this.tagHash = tagHash;
+      this.fireEvent('update', this);
+
     },
 
     addCurrentWsapiRecords: function(wsapiRecords){
@@ -86,16 +80,11 @@ Ext.define('CATS.tag-management.utils.TagMetrics',{
           });
         }
       }
-      this.fireEvent('update', this);
+
       this.tagUsageLoaded = true;
       this.tagHash = tagHash;
-      this.publish('tagDataLoaded', this);
+      this.fireEvent('update', this);
 
-    },
-    _onStatusRequested: function(showHistory){
-      if (this._isLoaded(showHistory)){
-        this.publish('tagDataLoaded', this);
-      }
     },
     _isLoaded: function(showHistory){
         return this.tagUsageLoaded && this.tagsLoaded && ((showHistory && this.tagHistoryLoaded) || !showHistory);
@@ -116,12 +105,10 @@ Ext.define('CATS.tag-management.utils.TagMetrics',{
              }
            }
       }
-      this.fireEvent('update', this);
+
       this.tagHistoryLoaded = true;
       this.tagHash = tagHash;
-
-      this.publish('tagDataLoaded', this);
-
+      this.fireEvent('update', this);
     },
 
     reset: function(){
@@ -149,30 +136,60 @@ Ext.define('CATS.tag-management.utils.TagMetrics',{
       }
 
       if (usageLessThan || monthsSinceUsed || !showArchived || !showUnused || nameRegexp){
-        data = Ext.Array.filter(data, function(d){
+        var filteredData = [];
+        for (var i=0; i< data.length; i++){
+          d = data[i];
+          
           var show = true;
 
-          if (!nameRegexp.test(d.Name)){
-              return false;
+          if (nameRegexp && !nameRegexp.test(d.Name)){
+              show = false;
           }
 
           if (usageLessThan && (d.count >= usageLessThan)){
-            return false;
+            show = false;
           }
 
           if (beforeDate && beforeDate < d.lastUsed){
-             return false;
+             show = false;
           }
 
           if (!showArchived && d.Archived){
-            return false;
+            show = false;
           }
           if (!showUnused && d.count === 0){
-            return false;
+            show = false;
           }
 
-          return true;
-        });
+          if (show){
+            filteredData.push(d);
+          }
+        }
+        // data = Ext.Array.filter(data, function(d){
+        //   var show = true;
+        //
+        //   if (!nameRegexp.test(d.Name)){
+        //       return false;
+        //   }
+        //
+        //   if (usageLessThan && (d.count >= usageLessThan)){
+        //     return false;
+        //   }
+        //
+        //   if (beforeDate && beforeDate < d.lastUsed){
+        //      return false;
+        //   }
+        //
+        //   if (!showArchived && d.Archived){
+        //     return false;
+        //   }
+        //   if (!showUnused && d.count === 0){
+        //     return false;
+        //   }
+        //
+        //   return true;
+        // });
+        data = filteredData;
       }
 
       if (showDups){
