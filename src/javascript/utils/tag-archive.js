@@ -29,36 +29,25 @@ Ext.define('CATS.tag-management.utils.menu.bulk.Archive', {
        }
     },
     _archiveRecords: function(records){
-        // var promises= [],
-        //     successfulRecords = [],
-        //     unsuccessfulRecords = [];
-        //
-        // _.each(records, function(r){
-        //     promises.push(function() {
-        //         return this._cancelRecord(r);
-        //     });
-        // }, this);
-        //
-        // Deft.Chain.sequence(promises, this).then({
-        //     success: function(results){
-        //         var errorMessage = '';
-        //         _.each(results, function(r){
-        //             if (r.errorMessage){
-        //                 errorMessage = r.errorMessage;
-        //                 unsuccessfulRecords.push(r.record);
-        //             } else {
-        //                 successfulRecords.push(r.record);
-        //             }
-        //         });
-        //
-        //         this.onSuccess(successfulRecords, unsuccessfulRecords, {}, errorMessage);
-        //     },
-        //     failure: function(msg){
-        //
-        //         this.onSuccess([], [], {}, msg);
-        //     },
-        //     scope: this
-        // });
+
+      var store = Ext.create('Rally.data.wsapi.batch.Store', {
+          data: records
+      });
+
+      Ext.Array.each(records, function(r){
+        r.set('Archived', true);
+      });
+
+      store.sync({
+        success: function(batch){
+            this.onSuccess(records, [], {}, "");
+        },
+        failure: function(batch){
+        
+          this.onSuccess([], records, {}, "Error updating tags to archived.");
+        },
+        scope: this
+      });
 
     },
     onSuccess: function (successfulRecords, unsuccessfulRecords, args, errorMessage) {

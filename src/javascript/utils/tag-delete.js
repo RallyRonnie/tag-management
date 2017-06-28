@@ -22,43 +22,48 @@ Ext.define('CATS.tag-management.utils.menu.bulk.Delete', {
         text: 'Delete...',
 
        handler: function () {
-           this._deleteRecords(this.records, null);
+
+         Ext.create('Rally.ui.dialog.ConfirmDialog', {
+            cls: 'delete-confirm-dialog',
+            confirmLabel: 'Delete',
+            title: 'Permanent Delete Warning',
+            width: 500,
+            message: '<div>Are you sure you want to delete</div>' +
+                        '<div><span class="item-display-string">' +
+                        numRecords + '</span> Tags?</div>' +
+                    '<div>&nbsp;</div>' +
+                    '<div class="associations-will-be-removed-message">Any associations will be removed.</div>' +
+                    '<div>THERE IS NO UNDO for deleting objects of this type.</div>',
+            listeners: {
+                confirm: function(){
+                  this._deleteRecords(this.records, null);
+                },
+                scope: this
+              }
+          });
+
        },
        predicate: function (records) {
            return true;
        }
     },
     _deleteRecords: function(records){
-        // var promises= [],
-        //     successfulRecords = [],
-        //     unsuccessfulRecords = [];
-        //
-        // _.each(records, function(r){
-        //     promises.push(function() {
-        //         return this._cancelRecord(r);
-        //     });
-        // }, this);
-        //
-        // Deft.Chain.sequence(promises, this).then({
-        //     success: function(results){
-        //         var errorMessage = '';
-        //         _.each(results, function(r){
-        //             if (r.errorMessage){
-        //                 errorMessage = r.errorMessage;
-        //                 unsuccessfulRecords.push(r.record);
-        //             } else {
-        //                 successfulRecords.push(r.record);
-        //             }
-        //         });
-        //
-        //         this.onSuccess(successfulRecords, unsuccessfulRecords, {}, errorMessage);
-        //     },
-        //     failure: function(msg){
-        //
-        //         this.onSuccess([], [], {}, msg);
-        //     },
-        //     scope: this
-        // });
+      var store = Ext.create('Rally.data.wsapi.batch.Store', {
+          data: records
+      });
+
+      store.removeAll();
+
+      store.sync({
+        success: function(batch){
+            this.onSuccess(records, [], {}, "");
+        },
+        failure: function(batch){
+          console.log('failure', batch);
+          this.onSuccess([], records, {}, "Error updating tags to archived.");
+        },
+        scope: this
+      });
 
     },
     onSuccess: function (successfulRecords, unsuccessfulRecords, args, errorMessage) {
@@ -69,19 +74,12 @@ Ext.define('CATS.tag-management.utils.menu.bulk.Delete', {
             message = message + ' been deleted';
 
             this.publish('bulkActionComplete', message);
-            //Rally.ui.notify.Notifier.show({
-            //    message: message
-            //});
         } else {
             if (successfulRecords.length === 0){
                 message = "0 items have been deleted";
             }
 
             this.publish('bulkActionError', message + ', but ' + unsuccessfulRecords.length + ' failed: ' + errorMessage);
-            //Rally.ui.notify.Notifier.showError({
-            //    message: message + ', but ' + unsuccessfulRecords.length + ' failed: ' + errorMessage,
-            //    saveDelay: 500
-            //});
         }
 
         Ext.callback(this.onActionComplete, null, [successfulRecords, unsuccessfulRecords]);
