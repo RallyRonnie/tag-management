@@ -1,16 +1,43 @@
 # Tag Management
 An app to view tag usage metrics and manage tags.  
 
-** App In Progress**
+## Summary/Description
+
+![screenshot](./images/screenshot.png "This is an example")
+
+This app may have performance implications for larger workspaces.  This app collects usage data for all tags.  Artifact types that this app checks for usage on are:  Defects, User Stories, Test Sets, Test Cases, Defect Suites, Tasks and all Portfolio Items.  
+
+To use, toggle the desired options and enter criteria (see below) and click the Update button.  
+
+####Toggle Options:
+Show Duplicates - this will show tags that are case insensitive duplicates.  
+Show Last Used Date - this will show the last time a tag was added to an artifact.  Note that this information may not be available for some tags due to inconsistencies in the lookback API.  Those tags will show a blank last used date.  This option may also take a longer time to load due to the loading and parsing of historical information.  
+Show Archived - this will include archived tags in the list of tags.  
+Show No Usage - this will include tags that are not being used in the list of tags.  
+
+####Criteria
+Name Contains - This can be a regular expression.  This will list only tags that meet the regular expression and is case insensitive.  
+Usage less than - this will only show tags that are used less than the number of times selected.  
+Months Since Used - this will show tags that have not been added to an item in the last number of months selected.  This uses the lookback API and must have the "Show Last USed Date" option toggled on.  
+
+###Other functions
+Tags can be bulk deleted or archived using the "Delete..." or "Archive..." bulk actions.    
+
+A particular tag can be replaced by another with the "Replace With..." menu item on a single tag record.  
 
 ###App settings
 Enable Lookback Usage - (Default = True).  If enabled, this app will use the lookback API to determine tag usage.  If false,
 the app will use the WSAPI api to determine tag usage.  For larger workspaces, the WSAPI will perform more slowly than the lookback
 API (if the lookback API is not slow that day).
 
-## Summary/Description
+Note that there may be inconsistencies when using the Lookback API.  Some projects may be excluded based on your user privileges and
+results may not be consistent with the WSAPI interface.  
 
-![screenshot](./images/screenshot.png "This is an example")
+##Issues
+
+If issues are found, please submit an issue to Github.  
+
+There may be some opportunity to increase immediate performance by requiring criteria in the "name contains", box, but there will still be additional performance hit when using the lookback API to get last used and also to reload only relevant tag information each time the update button is pushed.  Currently, the tag data is cached in memory and filtered on the client so most operations (with the exception of the Show Last Used function) are relatively fast once the data is loaded.    
 
 ## Development Notes
 

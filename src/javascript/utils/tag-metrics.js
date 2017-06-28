@@ -2,25 +2,46 @@ Ext.define('CATS.tag-management.utils.TagMetrics',{
     logger: new Rally.technicalservices.Logger(),
     tagHash: {},
     mixins: {
-           observable: 'Ext.util.Observable'
+           observable: 'Ext.util.Observable',
        },
+
+    tagsLoaded: false,
+    tagUsageLoaded: false,
+    tagHistoryLoaded: false,
 
     constructor: function(config){
        this.getExtendedTagModel();
-       this._initializeTagData(config.tags);
        this.mixins.observable.constructor.call(this, config);
     },
 
+    addTagRecords: function(tagRecords){
+       this._initializeTagData(tagRecords);
+       this.tagsLoaded = true;
+    },
+    updateTagUsage: function(tag, records){
+
+       var tagOid = Rally.util.Ref.getOidFromRef(tag._ref);
+       this.tagHash[tagOid].count = 0;
+       //this.tagHash[tagOid].lastUsed = null;
+       for (var i=0; i< records.length; i++){
+         var tags = records[i].get('Tags') && records[i].get('Tags')._tagsNameArray;
+         for (var j=0; j<tags.length; j++){
+           var oid = Rally.util.Ref.getOidFromRef(tags[j]._ref);
+           if (oid === tagOid){
+             this.tagHash[tagOid].count++;
+           }
+         }
+       }
+    },
     _initializeTagData: function(tagRecords){
       this.logger.log('_initializeTagData');
-      tagHash = this.tagHash;
+      this.tagHash = {};
 
       for (var i=0; i<tagRecords.length; i++){
         var tagData = tagRecords[i].getData();
         tagData.count = 0;
-        tagHash[tagData.ObjectID] = tagData;
+        this.tagHash[tagData.ObjectID] = tagData;
       }
-      this.tagHash = tagHash;
     },
 
     addCurrentSnapshots: function(snapshots){
@@ -36,8 +57,11 @@ Ext.define('CATS.tag-management.utils.TagMetrics',{
              tagHash[tags[j]].count++;
            }
       }
-      this.fireEvent('update', this);
+
+      this.tagUsageLoaded = true;
       this.tagHash = tagHash;
+      this.fireEvent('update', this);
+
     },
 
     addCurrentWsapiRecords: function(wsapiRecords){
@@ -56,31 +80,35 @@ Ext.define('CATS.tag-management.utils.TagMetrics',{
           });
         }
       }
-      this.fireEvent('update', this);
-      this.tagHash = tagHash;
-    },
 
+      this.tagUsageLoaded = true;
+      this.tagHash = tagHash;
+      this.fireEvent('update', this);
+
+    },
+    _isLoaded: function(showHistory){
+        return this.tagUsageLoaded && this.tagsLoaded && ((showHistory && this.tagHistoryLoaded) || !showHistory);
+    },
     addHistoricalSnapshots: function(snapshots){
       var tagHash = this.tagHash;
 
       for (var i=0; i<snapshots.length; i++){
         var tags = snapshots[i].raw.Tags || [],
+            previousTags = snapshots[i].raw._PreviousValues && snapshots[i].raw._PreviousValues.Tags || [];
             tagDate = Rally.util.DateTime.fromIsoString(snapshots[i].raw._ValidFrom);
-           for (var j=0; j<tags.length; j++){
-             if (!tagHash[tags[j]]){
-               tagHash[tags[j]] = {
-                 Name: 'DELETED [' + tags[j] + ']',
-                 count: 1
-               };
-             }
 
-             if (!tagHash[tags[j]].lastUsed || tagHash[tags[j]].lastUsed < tagDate){
+           var changedTags = _.difference(tags, previousTags);
+           for (var j=0; j<changedTags.length; j++){
+
+             if (tagHash[tags[j]] && (!tagHash[tags[j]].lastUsed || tagHash[tags[j]].lastUsed < tagDate)){
                tagHash[tags[j]].lastUsed = tagDate;
              }
            }
       }
-      this.fireEvent('update', this);
+
+      this.tagHistoryLoaded = true;
       this.tagHash = tagHash;
+      this.fireEvent('update', this);
     },
 
     reset: function(){
@@ -88,10 +116,12 @@ Ext.define('CATS.tag-management.utils.TagMetrics',{
         obj.count = 0;
         obj.lastUsed = null;
       });
+      this.tagUsageLoaded = false;
+      this.tagHistoryLoaded = false;
     },
 
-    getData: function(showDups, usageLessThan, monthsSinceUsed, showArchived, showUnused){
-      this.logger.log('getData', showDups, usageLessThan, monthsSinceUsed, showArchived, showUnused);
+    getData: function(showDups, usageLessThan, monthsSinceUsed, showArchived, showUnused, nameContains){
+      this.logger.log('getData', showDups, usageLessThan, monthsSinceUsed, showArchived, showUnused, nameContains);
 
 
       var data = Ext.Object.getValues(this.tagHash);
@@ -100,28 +130,66 @@ Ext.define('CATS.tag-management.utils.TagMetrics',{
       if (monthsSinceUsed){
         beforeDate = Rally.util.DateTime.add(new Date(), "month", -monthsSinceUsed);
       }
+      var nameRegexp = null;
+      if (nameContains){
+         nameRegexp = new RegExp(nameContains, "gi");
+      }
 
-      if (usageLessThan || monthsSinceUsed || !showArchived || !showUnused){
-        data = Ext.Array.filter(data, function(d){
+      if (usageLessThan || monthsSinceUsed || !showArchived || !showUnused || nameRegexp){
+        var filteredData = [];
+        for (var i=0; i< data.length; i++){
+          d = data[i];
+          
           var show = true;
 
+          if (nameRegexp && !nameRegexp.test(d.Name)){
+              show = false;
+          }
+
           if (usageLessThan && (d.count >= usageLessThan)){
-            return false;
+            show = false;
           }
 
           if (beforeDate && beforeDate < d.lastUsed){
-             return false;
+             show = false;
           }
 
           if (!showArchived && d.Archived){
-            return false;
+            show = false;
           }
           if (!showUnused && d.count === 0){
-            return false;
+            show = false;
           }
 
-          return true;
-        });
+          if (show){
+            filteredData.push(d);
+          }
+        }
+        // data = Ext.Array.filter(data, function(d){
+        //   var show = true;
+        //
+        //   if (!nameRegexp.test(d.Name)){
+        //       return false;
+        //   }
+        //
+        //   if (usageLessThan && (d.count >= usageLessThan)){
+        //     return false;
+        //   }
+        //
+        //   if (beforeDate && beforeDate < d.lastUsed){
+        //      return false;
+        //   }
+        //
+        //   if (!showArchived && d.Archived){
+        //     return false;
+        //   }
+        //   if (!showUnused && d.count === 0){
+        //     return false;
+        //   }
+        //
+        //   return true;
+        // });
+        data = filteredData;
       }
 
       if (showDups){
