@@ -9,23 +9,23 @@ This app may have performance implications for larger workspaces.  This app coll
 
 To use, toggle the desired options and enter criteria (see below) and click the Update button.  
 
-####Toggle Options:
+#### Toggle Options:
 Show Duplicates - this will show tags that are case insensitive duplicates.  
 Show Last Used Date - this will show the last time a tag was added to an artifact.  Note that this information may not be available for some tags due to inconsistencies in the lookback API.  Those tags will show a blank last used date.  This option may also take a longer time to load due to the loading and parsing of historical information.  
 Show Archived - this will include archived tags in the list of tags.  
 Show No Usage - this will include tags that are not being used in the list of tags.  
 
-####Criteria
+#### Criteria
 Name Contains - This can be a regular expression.  This will list only tags that meet the regular expression and is case insensitive.  
 Usage less than - this will only show tags that are used less than the number of times selected.  
 Months Since Used - this will show tags that have not been added to an item in the last number of months selected.  This uses the lookback API and must have the "Show Last USed Date" option toggled on.  
 
-###Other functions
+### Other functions
 Tags can be bulk deleted or archived using the "Delete..." or "Archive..." bulk actions.    
 
 A particular tag can be replaced by another with the "Replace With..." menu item on a single tag record.  
 
-###App settings
+### App settings
 Enable Lookback Usage - (Default = True).  If enabled, this app will use the lookback API to determine tag usage.  If false,
 the app will use the WSAPI api to determine tag usage.  For larger workspaces, the WSAPI will perform more slowly than the lookback
 API (if the lookback API is not slow that day).
@@ -33,7 +33,7 @@ API (if the lookback API is not slow that day).
 Note that there may be inconsistencies when using the Lookback API.  Some projects may be excluded based on your user privileges and
 results may not be consistent with the WSAPI interface.  
 
-##Issues
+## Issues
 
 If issues are found, please submit an issue to Github.  
 
