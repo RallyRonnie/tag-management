@@ -23,6 +23,8 @@ Ext.define("tag-management", {
       this.tagMetrics = Ext.create('CATS.tag-management.utils.TagMetrics',{});
       //this.tagMetrics.on('refreshcount', this._updateTagData, this);
       this.subscribe('tagDataUpdated', this._updateTagData, this);
+      this.subscribe('tagArchived', this._updateArchivedTagData, this);
+      this.subscribe('tagDeleted', this._updateDeletedTagData, this);
 
       this._fetchPortfolioItemTypes().then({
         success: this._initializeApp,
@@ -43,6 +45,15 @@ Ext.define("tag-management", {
     },
     _showErrorNotification: function(msg){
       Rally.ui.notify.Notifier.showError({message: msg});
+    },
+    _updateArchivedTagData: function(tags){
+      this.logger.log('updateARchivedTagData');
+        this.tagMetrics.archiveTags(tags);
+        this._updateView();
+    },
+    _updateDeletedTagData: function(tags){
+       this.tagMetrics.deleteTags(tags);
+       this._updateView();
     },
     _updateTagData: function(tags){
        this.logger.log('_updateTagData', tags);
@@ -108,6 +119,12 @@ Ext.define("tag-management", {
                     xtype: 'tagreplacemenuitem',
                     record: record,
                     portfolioItemTypes: portfolioItemTypes
+                },{
+                    xtype: 'tagarchivemenuitem',
+                    record: record
+                },{
+                    xtype: 'tagdeletemenuitem',
+                    record: record
                 }
             ];
         }
@@ -545,7 +562,8 @@ Ext.define("tag-management", {
             "_PreviousValues.Tags": {$exists: true}
          },
          removeUnauthorizedSnapshots: true,
-         limit: "Infinity"
+         limit: "Infinity",
+         useHttpPost: true
       }).load({
         callback: function(records,operation,success){
           if (operation.wasSuccessful()){
@@ -588,7 +606,8 @@ Ext.define("tag-management", {
             "__At": "current"
           },
           removeUnauthorizedSnapshots: true,
-         limit: Infinity
+         limit: Infinity,
+         useHttpPost: true
       }).load({
         callback: function(records,operation,success){
           if (operation.wasSuccessful()){

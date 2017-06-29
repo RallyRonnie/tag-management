@@ -8,16 +8,8 @@ Ext.define('CATS.tag-management.utils.menu.TagReplace', {
     },
     config: {
 
-        /**
-         * @cfg {Rally.data.wsapi.Model}
-         * The record of the menu
-         */
         record: undefined,
 
-        /**
-         * @cfg {Function}
-         * This is called when a menu item is clicked
-         */
         handler: function () {
 
           Ext.create('CATS.tag-management.utils.TagDialog', {
@@ -34,22 +26,10 @@ Ext.define('CATS.tag-management.utils.menu.TagReplace', {
 
 
         },
-
-        /**
-         * @cfg {Function}
-         *
-         * A function that should return true if this menu item should show.
-         * @param record {Rally.data.wsapi.Model}
-         * @return {Boolean}
-         */
         predicate: function (record) {
             return true;
         },
 
-        /**
-         * @cfg {String}
-         * The display string
-         */
         text: 'Replace With...'
 
     },
@@ -59,7 +39,8 @@ Ext.define('CATS.tag-management.utils.menu.TagReplace', {
     _replaceTags: function(tag){
 
       var newTagRefs = [],
-          newTagNames = [];
+          newTagNames = [],
+          oldRecord = this.record;
 
       if (Ext.isArray(tag)){
         newTagRefs = _.map(tag, function(t){ return  {'_ref': t.get('_ref')}; });
@@ -83,10 +64,6 @@ Ext.define('CATS.tag-management.utils.menu.TagReplace', {
        }).load({
          callback: function(records, operation, success){
 
-            var bulkStore = Ext.create('Rally.data.wsapi.batch.Store', {
-                data: records
-            });
-
             Ext.Array.each(records, function(r){
               var tags = _.filter(r.get('Tags') && r.get('Tags')._tagsNameArray || [], function(t){
                  return t._ref !== replaceTagRef;
@@ -94,6 +71,10 @@ Ext.define('CATS.tag-management.utils.menu.TagReplace', {
               tags = tags.concat(newTagRefs);
 
               r.set('Tags', tags);
+            });
+
+            var bulkStore = Ext.create('Rally.data.wsapi.batch.Store', {
+                data: records
             });
 
             bulkStore.sync({
@@ -109,8 +90,36 @@ Ext.define('CATS.tag-management.utils.menu.TagReplace', {
                },
                scope: this
             });
-
          }
+       });
+       this._archiveTag(replaceTagRef);
+
+    },
+    _archiveTag: function(tagRef){
+      var tagOid = Rally.util.Ref.getOidFromRef(tagRef);
+        Rally.data.ModelFactory.getModel({
+           type: 'Tag',
+           success: function(model) {
+               model.load(tagOid,{
+                 callback: function(result, operation){
+                   if (operation.wasSuccessful()){
+                     result.set('Archived', true);
+                     result.save({
+                       callback: function(savedResult, operation){
+                          if (!operation.wasSuccessful()){
+                            Rally.ui.notify.Notifier.showError({message: "Error Archiving Tag '" + replaceTagName + "':  " + operation.error.errors.join(",")});
+                          } else {
+                            this.publish('tagArchived', tagOid);
+                          }
+                       },
+                       scope: this
+                     });
+                   }
+                 },
+                 scope: this
+               });
+           },
+           scope: this 
        });
     },
     constructor:function (config) {
