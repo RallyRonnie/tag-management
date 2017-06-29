@@ -18,6 +18,22 @@ Ext.define('CATS.tag-management.utils.TagMetrics',{
        this._initializeTagData(tagRecords);
        this.tagsLoaded = true;
     },
+    archiveTags: function(tags){
+       if (!Ext.isArray(tags)){
+         tags = [tags];
+       }
+       Ext.Array.each(tags, function(t){
+         this.tagHash[t].Archived = true;
+       }, this);
+    },
+    deleteTags: function(tags){
+      if (!Ext.isArray(tags)){
+        tags = [tags];
+      }
+      Ext.Array.each(tags, function(t){
+        delete this.tagHash[t]
+      }, this);
+    },
     updateTagUsage: function(tag, records){
 
        var tagOid = Rally.util.Ref.getOidFromRef(tag._ref);
@@ -139,7 +155,7 @@ Ext.define('CATS.tag-management.utils.TagMetrics',{
         var filteredData = [];
         for (var i=0; i< data.length; i++){
           d = data[i];
-          
+
           var show = true;
 
           if (nameRegexp && !nameRegexp.test(d.Name)){
