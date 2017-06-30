@@ -139,7 +139,6 @@ Ext.define('CATS.tag-management.utils.TagMetrics',{
     getData: function(showDups, usageLessThan, monthsSinceUsed, showArchived, showUnused, nameContains){
       this.logger.log('getData', showDups, usageLessThan, monthsSinceUsed, showArchived, showUnused, nameContains);
 
-
       var data = Ext.Object.getValues(this.tagHash);
 
       var beforeDate = null;

@@ -17,7 +17,7 @@ Ext.define('CATS.tag-management.utils.menu.bulk.Archive', {
          * @param Rally.data.wsapi.Model[] onActionComplete.unsuccessfulRecords any records which failed to be updated
          */
         onActionComplete: function(){
-            //         console.log('onActionComplete');
+            console.log('onActionComplete');
         },
         text: 'Archive...',
 
@@ -43,7 +43,7 @@ Ext.define('CATS.tag-management.utils.menu.bulk.Archive', {
             this.onSuccess(records, [], {}, "");
         },
         failure: function(batch){
-        
+
           this.onSuccess([], records, {}, "Error updating tags to archived.");
         },
         scope: this
@@ -51,7 +51,6 @@ Ext.define('CATS.tag-management.utils.menu.bulk.Archive', {
 
     },
     onSuccess: function (successfulRecords, unsuccessfulRecords, args, errorMessage) {
-
         var message = successfulRecords.length + (successfulRecords.length === 1 ? ' item has ' : ' items have ');
 
         if(successfulRecords.length === this.records.length) {
