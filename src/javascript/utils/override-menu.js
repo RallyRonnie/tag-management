@@ -24,3 +24,11 @@ Ext.override(Rally.ui.grid.CheckboxModel, {
         return record.get('_type') === "tag";
     }
 });
+
+// need to override because grid is failing to refresh on refreshAfterBulkAction function which
+// is called after the bulk action does its thing
+Ext.override(Rally.ui.grid.Grid,{
+    refreshAfterBulkAction: function() {
+        return Ext.create('Deft.Deferred').promise;
+    }
+});
