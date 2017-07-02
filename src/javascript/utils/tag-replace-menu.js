@@ -11,18 +11,29 @@ Ext.define('CATS.tag-management.utils.menu.TagReplace', {
         record: undefined,
 
         handler: function () {
-
-          Ext.create('CATS.tag-management.utils.TagDialog', {
-           autoShow: true,
-           draggable: true,
-           width: 300,
-           title: 'Choose a Tag to Replace With',
-           listeners: {
-              confirm: this._replaceTags,
-              cancel: function(){},
-              scope: this
-           }
-       });
+            Ext.create('Rally.ui.dialog.TagChooserDialog', {
+                autoShow: true,
+                records: [],
+                title: 'Choose a Tag to Replace With',
+                height: 250,
+                listeners: {
+                    tagselect: function(dialog,tags){
+                        this._replaceTags(tags.full);
+                    },
+                    scope: this
+                }
+            });
+    //      Ext.create('CATS.tag-management.utils.TagDialog', {
+    //        autoShow: true,
+    //        draggable: true,
+    //        width: 300,
+    //        title: 'Choose a Tag to Replace With',
+    //        listeners: {
+    //           confirm: this._replaceTags,
+    //           cancel: function(){},
+    //           scope: this
+    //        }
+    //    });
 
 
         },
@@ -37,8 +48,9 @@ Ext.define('CATS.tag-management.utils.menu.TagReplace', {
         return ['Defect', 'DefectSuite', 'UserStory','TestSet','Task'].concat(this.portfolioItemTypes);
     },
     _replaceTags: function(tag){
+        console.log('replace', tag);
 
-      var newTagRefs = [],
+        var newTagRefs = [],
           newTagNames = [],
           oldRecord = this.record;
 
@@ -46,11 +58,14 @@ Ext.define('CATS.tag-management.utils.menu.TagReplace', {
         newTagRefs = _.map(tag, function(t){ return  {'_ref': t.get('_ref')}; });
         newTagNames = _.map(tag, function(t){ return t.get('Name'); });
       } else {
-        newTagRefs =  [{'_ref': t.get('_ref')}];
-        newTagNames = [t.get('Name')];
+          console.log('x');
+        newTagRefs =  [{'_ref': tag.get('_ref')}];
+          console.log('y');
+        newTagNames = [tag.get('Name')];
       }
-      var replaceTagRef = this.record.get('_ref'),
-          replaceTagName = this.record.get('Name');
+      var replaceTagRef = oldRecord.get('_ref'),
+          replaceTagName = oldRecord.get('Name');
+      console.log('replace', replaceTagName, 'with', newTagNames);
 
       Ext.create('Rally.data.wsapi.artifact.Store', {
          models: this._getModels(),
@@ -119,7 +134,7 @@ Ext.define('CATS.tag-management.utils.menu.TagReplace', {
                  scope: this
                });
            },
-           scope: this 
+           scope: this
        });
     },
     constructor:function (config) {
