@@ -32,3 +32,26 @@ Ext.override(Rally.ui.grid.Grid,{
         return Ext.create('Deft.Deferred').promise;
     }
 });
+
+// override the chooser dialog so that the text doesn't say
+// "Apply the following tags for the 0 selected items"
+
+Ext.override(Rally.ui.dialog.TagChooserDialog,{
+    _createChooser: function() {
+        chooser = this.buildChooser();
+        if (chooser) {
+            this.mon(chooser, 'ready', function() {
+                this.fireEvent('ready', this);
+            }, this);
+        } else {
+            this.fireEvent('ready', this);
+        }
+
+        this.add({
+            xtype: 'container',
+            items: [chooser]
+        });
+
+        return chooser;
+    }
+});
