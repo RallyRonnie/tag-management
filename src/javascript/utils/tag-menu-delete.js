@@ -23,30 +23,18 @@ Ext.define('CATS.tag-management.utils.menu.TagDelete', {
 
     _deleteTag: function(tagRecord){
       var ref = tagRecord.get('_ref'),
-          tagOid = Rally.util.Ref.getOidFromRef(ref);
-        Rally.data.ModelFactory.getModel({
-           type: 'Tag',
-           success: function(model) {
-               model.load(tagOid,{
-                 callback: function(result, operation){
-                   if (operation.wasSuccessful()){
-                     result.destroy({
-                       callback: function(savedResult, operation){
-                          if (!operation.wasSuccessful()){
-                            Rally.ui.notify.Notifier.showError({message: "Error Deleting Tag '" + tagRecord.get('Name') + "':  " + operation.error.errors.join(",")});
-                          } else {
-                            this.publish('tagDeleted', tagOid);
-                          }
-                       }
-                     });
-                   } else {
-                     Rally.ui.notify.Notifier.showError({message: "Error Retrieving and Deleting Tag '" + tagRecord.get('Name') + "':  " + operation.error.errors.join(",")});
-                   }
-                 },
-                 scope: this
-               });
-           },
-           scope: this 
-       });
+          tagOid = Rally.util.Ref.getOidFromRef(ref),
+          me = this;
+
+
+          //https://rally1.rallydev.com/slm/sbt/tag.sp?oid=130972737712
+          Ext.Ajax.request({
+            url: '/slm/sbt/tag.sp?oid=' + tagOid,
+            method: 'DELETE',
+            success: function(response){
+                var text = response.responseText;
+                me.publish('tagDeleted', tagOid);
+            }
+        });
     }
 });

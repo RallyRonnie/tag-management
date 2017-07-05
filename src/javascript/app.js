@@ -55,6 +55,11 @@ Ext.define("tag-management", {
     },
     _updateDeletedTagData: function(tags){
        this.tagMetrics.deleteTags(tags);
+       var msg = "1 Tag Deleted.";
+       if (Ext.isArray(tags)){
+          msg = tags.length + ' Tags Deleted.';
+       }
+       Rally.ui.notify.Notifier.show({message: msg});
        this._updateView();
     },
     _updateTagData: function(tags){
@@ -99,8 +104,8 @@ Ext.define("tag-management", {
         bulkEditConfig: {
           items: [{
               xtype: 'tagmanagementbulkarchive'
-        //   },{
-        //       xtype: 'tagmanagementbulkdelete'
+          },{
+              xtype: 'tagmanagementbulkdelete'
           }]
         },
         showRowActionsColumn: false,
@@ -124,9 +129,9 @@ Ext.define("tag-management", {
                 },{
                     xtype: 'tagarchivemenuitem',
                     record: record
-                // },{
-                //     xtype: 'tagdeletemenuitem',
-                //     record: record
+                },{
+                    xtype: 'tagdeletemenuitem',
+                    record: record
                 }
             ];
         }

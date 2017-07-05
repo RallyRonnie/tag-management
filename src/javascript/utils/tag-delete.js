@@ -54,23 +54,53 @@ Ext.define('CATS.tag-management.utils.menu.bulk.Delete', {
        }
     },
     _deleteRecords: function(records){
-      var store = Ext.create('Rally.data.wsapi.batch.Store', {
-          data: records
-      });
 
-      store.removeAll();
+      var promises = _.map(records, function(r){
+         return this._deleteTag(r);
+      }, this);
 
-      store.sync({
-        success: function(batch){
-            this.onSuccess(records, [], {}, "");
-        },
-        failure: function(batch){
-          console.log('failure', batch);
-          this.onSuccess([], records, {}, "Error updating tags to archived.");
+      Deft.Promise.all(promises).then({
+        success: function(tags){
+          var successes = [],
+            failures = [];
+
+          Ext.Array.each(tags, function(t){
+             if (/ERROR DELETING/.test(t)){
+               failures.push(t);
+             } else {
+               successes.push(t);
+             }
+          });
+
+          var errorMsg = "";
+          if (failures.length > 0){
+            errorMsg = failures.join('<br/>');
+          }
+          this.onSuccess(successes, failures, {}, errorMsg);
         },
         scope: this
       });
 
+    },
+    _deleteTag: function(tagRecord){
+      var deferred = Ext.create('Deft.Deferred'),
+          ref = tagRecord.get('_ref'),
+          tagOid = Rally.util.Ref.getOidFromRef(ref),
+          me = this;
+
+          //https://rally1.rallydev.com/slm/sbt/tag.sp?oid=130972737712
+          Ext.Ajax.request({
+            url: '/slm/sbt/tag.sp?oid=' + tagOid,
+            method: 'DELETE',
+            success: function(response){
+                deferred.resolve(tagOid);
+            },
+            failure: function(){
+                var text = response.responseText;
+                deferred.resolve("ERROR DELETING " + tagOid + " " + text);
+            }
+        });
+        return deferred.promise;
     },
     onSuccess: function (successfulRecords, unsuccessfulRecords, args, errorMessage) {
 
@@ -79,7 +109,7 @@ Ext.define('CATS.tag-management.utils.menu.bulk.Delete', {
         if(successfulRecords.length === this.records.length) {
             message = message + ' been deleted';
             var oids = Ext.Array.map(successfulRecords, function(record){
-                return record.get('ObjectID');
+                return record;
             });
 
             this.publish('tagsDeleted', oids);
