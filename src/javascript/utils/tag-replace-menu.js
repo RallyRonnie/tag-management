@@ -48,7 +48,6 @@ Ext.define('CATS.tag-management.utils.menu.TagReplace', {
         return ['Defect', 'DefectSuite', 'UserStory','TestSet','Task'].concat(this.portfolioItemTypes);
     },
     _replaceTags: function(tag){
-        console.log('replace', tag);
 
         var newTagRefs = [],
           newTagNames = [],
@@ -58,14 +57,13 @@ Ext.define('CATS.tag-management.utils.menu.TagReplace', {
         newTagRefs = _.map(tag, function(t){ return  {'_ref': t.get('_ref')}; });
         newTagNames = _.map(tag, function(t){ return t.get('Name'); });
       } else {
-          console.log('x');
+
         newTagRefs =  [{'_ref': tag.get('_ref')}];
-          console.log('y');
         newTagNames = [tag.get('Name')];
       }
       var replaceTagRef = oldRecord.get('_ref'),
           replaceTagName = oldRecord.get('Name');
-      console.log('replace', replaceTagName, 'with', newTagNames);
+      //console.log('replace', replaceTagName, 'with', newTagNames);
 
       Ext.create('Rally.data.wsapi.artifact.Store', {
          models: this._getModels(),
