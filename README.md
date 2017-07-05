@@ -23,6 +23,9 @@ Months Since Used - this will show tags that have not been added to an item in t
 ### Other functions
 Tags can be bulk deleted or archived using the "Delete..." or "Archive..." bulk actions.    
 
+NOTE:  The "Delete..." function uses a non-wsapi endpoint that can change without notice and may not work properly.  Also, the
+"Delete..." function requires administrator permissions.  
+
 A particular tag can be replaced by another with the "Replace With..." menu item on a single tag record.  
 
 ### App settings
