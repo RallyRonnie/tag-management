@@ -22,7 +22,7 @@ Ext.define('CATS.tag-management.utils.menu.bulk.Delete', {
         text: 'Delete...',
 
        handler: function () {
-
+         var numRecords = this.records.length; 
          Ext.create('Rally.ui.dialog.ConfirmDialog', {
             cls: 'delete-confirm-dialog',
             confirmLabel: 'Delete',
