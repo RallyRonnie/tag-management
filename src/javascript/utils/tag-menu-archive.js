@@ -22,7 +22,8 @@ Ext.define('CATS.tag-management.utils.menu.TagArchive', {
     },
 
     _archiveTag: function(tagRecord){
-      var ref = tagRecord.get('_ref'),
+      var me = this,
+          ref = tagRecord.get('_ref'),
           tagOid = Rally.util.Ref.getOidFromRef(ref);
 
        Rally.data.ModelFactory.getModel({
@@ -37,7 +38,7 @@ Ext.define('CATS.tag-management.utils.menu.TagArchive', {
                           if (!operation.wasSuccessful()){
                             Rally.ui.notify.Notifier.showError({message: "Error Archiving Tag '" + tagRecord.get('Name') + "':  " + operation.error.errors.join(",")});
                           } else {
-                            this.publish('tagArchived', tagOid);
+                            me.publish('tagArchived', tagOid);
                           }
                        },
                        scope: this
@@ -46,7 +47,7 @@ Ext.define('CATS.tag-management.utils.menu.TagArchive', {
                      Rally.ui.notify.Notifier.showError({message: "Error Retrieving and Archiving Tag '" + tagRecord.get('Name') + "':  " + operation.error.errors.join(",")});
                    }
                  },
-                 scope: this 
+                 scope: this
                });
            }
        });

@@ -25,6 +25,7 @@ Ext.define("tag-management", {
       this.subscribe('tagDataUpdated', this._updateTagData, this);
       this.subscribe('tagArchived', this._updateArchivedTagData, this);
       this.subscribe('tagDeleted', this._updateDeletedTagData, this);
+      this.subscribe('tagsDeleted', this._updateDeletedTagData, this);
 
       this._fetchPortfolioItemTypes().then({
         success: this._initializeApp,
@@ -46,8 +47,9 @@ Ext.define("tag-management", {
     _showErrorNotification: function(msg){
       Rally.ui.notify.Notifier.showError({message: msg});
     },
+
     _updateArchivedTagData: function(tags){
-      this.logger.log('updateARchivedTagData');
+      this.logger.log('updateArchivedTagData');
         this.tagMetrics.archiveTags(tags);
         this._updateView();
     },
@@ -81,11 +83,11 @@ Ext.define("tag-management", {
         msg = "No duplicate Tags found."
       }
 
-      var store = Ext.create('Rally.data.custom.Store', data);
+      this.store = Ext.create('Rally.data.custom.Store', data);
 
       var grid = this.down('#gridBox').add({
         xtype: 'rallygrid',
-        store: store,
+        store: this.store,
         columnCfgs: this._getColumnCfgs(),
         showPagingToolbar: false,
         enableBulkEdit: true,
@@ -97,8 +99,8 @@ Ext.define("tag-management", {
         bulkEditConfig: {
           items: [{
               xtype: 'tagmanagementbulkarchive'
-          },{
-              xtype: 'tagmanagementbulkdelete'
+        //   },{
+        //       xtype: 'tagmanagementbulkdelete'
           }]
         },
         showRowActionsColumn: false,
@@ -122,9 +124,9 @@ Ext.define("tag-management", {
                 },{
                     xtype: 'tagarchivemenuitem',
                     record: record
-                },{
-                    xtype: 'tagdeletemenuitem',
-                    record: record
+                // },{
+                //     xtype: 'tagdeletemenuitem',
+                //     record: record
                 }
             ];
         }

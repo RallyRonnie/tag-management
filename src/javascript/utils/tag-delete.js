@@ -22,7 +22,13 @@ Ext.define('CATS.tag-management.utils.menu.bulk.Delete', {
         text: 'Delete...',
 
        handler: function () {
-         var numRecords = this.records.length; 
+
+
+
+
+         var numRecords = this.records.length;
+
+
          Ext.create('Rally.ui.dialog.ConfirmDialog', {
             cls: 'delete-confirm-dialog',
             confirmLabel: 'Delete',
@@ -72,7 +78,11 @@ Ext.define('CATS.tag-management.utils.menu.bulk.Delete', {
 
         if(successfulRecords.length === this.records.length) {
             message = message + ' been deleted';
+            var oids = Ext.Array.map(successfulRecords, function(record){
+                return record.get('ObjectID');
+            });
 
+            this.publish('tagsDeleted', oids);
             this.publish('bulkActionComplete', message);
         } else {
             if (successfulRecords.length === 0){
