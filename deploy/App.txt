@@ -1,0 +1,1676 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tag Management</title>
+    <!--  (c) 2017 CA Technologies.  All Rights Reserved. -->
+    <!--  Build Date: Wed Oct 17 2018 09:36:19 GMT-0500 (Central Daylight Time) -->
+    
+    <script type="text/javascript">
+        var APP_BUILD_DATE = "Wed Oct 17 2018 09:36:19 GMT-0500 (Central Daylight Time)";
+        var STORY    = "F69";
+        var BUILDER  = "pinro08";
+        var CHECKSUM = 54402184838;
+    </script>
+    
+    <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
+    <!-- our highcharts (needed so that we can add patterns) 
+    <script type="text/javascript" src="/apps/2.1/lib/analytics/analytics-all.js"></script>
+    -->
+    
+    
+    <script type="text/javascript">
+        Rally.onReady(function() {
+             
+/**
+ * A link that pops up a version dialog box
+ */
+
+Ext.define('Rally.technicalservices.InfoLink',{
+    extend: 'Rally.ui.dialog.Dialog',
+    alias: 'widget.tsinfolink',
+    
+    /**
+     * @cfg {String} informationHtml
+     * Additional text to be displayed on the popup dialog (for exmaple,
+     * to add a description of the app's use or functionality)
+     */
+    informationHtml: null,
+    
+    /**
+     * 
+     * cfg {String} title
+     * The title for the dialog box
+     */
+    title: "Build Information",
+    
+    defaults: { padding: 5, margin: 5 },
+
+    closable: true,
+     
+    draggable: true,
+
+    autoShow: true,
+   
+    width: 350,
+    
+    informationalConfig: null,
+    
+    items: [{xtype:'container', itemId:'information' }],
+    
+    initComponent: function() {
+        var id = Ext.id(this);
+        this.title =  "<span class='icon-help'> </span>" + this.title;
+        this.callParent(arguments);
+    },
+    
+    _generateChecksum: function(string){
+        var chk = 0x12345678,
+            i;
+        string = string.replace(/var CHECKSUM = .*;/,"");
+        string = string.replace(/var BUILDER  = .*;/,"");
+        string = string.replace(/\s/g,"");  //Remove all whitespace from the string.
+       
+        for (i = 0; i < string.length; i++) {
+            chk += (string.charCodeAt(i) * i);
+        }
+   
+        return chk;
+    },
+    
+    _checkChecksum: function(container) {
+        var deferred = Ext.create('Deft.Deferred');
+        var me = this;
+        
+        Ext.Ajax.request({
+            url: document.URL,
+            params: {
+                id: 1
+            },
+            success: function (response) {
+                text = response.responseText;
+                if ( CHECKSUM ) {
+                    var stored_checksum = me._generateChecksum(text);
+                    if ( CHECKSUM !== stored_checksum ) {
+                        deferred.resolve(false);
+                        return;
+                    }
+                }
+                deferred.resolve(true);
+            }
+        });
+        
+        return deferred.promise;
+    },
+    
+    _addToContainer: function(container){
+        var config = Ext.apply({
+            xtype:'container',
+            height: 200,
+            overflowY: true
+        }, this.informationalConfig);
+        
+        container.add(config);
+    },
+    
+    afterRender: function() {
+        var app = Rally.getApp();
+        
+        if ( !Ext.isEmpty( this.informationalConfig ) ) {
+            var container = this.down('#information');
+            this._addToContainer(container);
+            
+        }
+        
+        if (! app.isExternal() ) {
+            this._checkChecksum(app).then({
+                scope: this,
+                success: function(result){
+                    if ( !result ) {
+                        this.addDocked({
+                            xtype:'container',
+                            cls: 'build-info',
+                            dock: 'bottom',
+                            padding: 2,
+                            html:'<span class="icon-warning"> </span>Checksums do not match'
+                        });
+                    }
+                },
+                failure: function(msg){
+                    console.log("oops:",msg);
+                }
+            });
+        } else {
+            this.addDocked({
+                xtype:'container',
+                cls: 'build-info',
+                padding: 2,
+                dock: 'bottom',
+                html:'... Running externally'
+            });
+        }
+        this.callParent(arguments);
+    },
+    
+    beforeRender: function() {
+        var me = this;
+        this.callParent(arguments);
+
+        if (this.informationHtml) {
+            this.addDocked({
+                xtype: 'component',
+                componentCls: 'intro-panel',
+                padding: 2,
+                html: this.informationHtml,
+                doc: 'top'
+            });
+        }
+        
+        this.addDocked({
+            xtype:'container',
+            cls: 'build-info',
+            padding: 2,
+            dock:'bottom',
+            html:"This app was created by the CA AC Technical Services Team."
+        });
+        
+        if ( APP_BUILD_DATE ) {
+            var build_html = Ext.String.format("Built on: {0} <br/>Built by: {1}",
+                APP_BUILD_DATE,
+                BUILDER);
+                
+            if ( STORY ) {
+                build_html = build_html + "<br/>Source story: " + STORY;
+            }
+                
+            this.addDocked({
+                xtype:'container',
+                cls: 'build-info',
+                padding: 2,
+                dock: 'bottom',
+                html: build_html
+            });
+        }
+    }
+});
+
+/*
+ */
+Ext.define('Rally.technicalservices.Logger',{
+    constructor: function(config){
+        Ext.apply(this,config);
+    },
+    log: function(args){
+        var timestamp = "[ " + Ext.util.Format.date(new Date(), "Y-m-d H:i:s.u") + " ]";
+        //var output_args = arguments;
+        //output_args.unshift( [ "[ " + timestamp + " ]" ] );
+        //output_args = Ext.Array.push(output_args,arguments);
+        
+        var output_args = [];
+        output_args = Ext.Array.push(output_args,[timestamp]);
+        output_args = Ext.Array.push(output_args, Ext.Array.slice(arguments,0));
+
+        window.console && console.log.apply(console,output_args);
+    }
+
+});
+
+// Ext.override(Rally.ui.menu.DefaultRecordMenu, {
+//     //Override the getMenuItems function to return only the menu items that we are interested in.
+//     _getMenuItems: function() {
+//         var record = this.getRecord(),
+//             items = [],
+//             popoverPlacement = this.popoverPlacement || Rally.ui.popover.Popover.DEFAULT_PLACEMENT;
+//
+//         items.push({
+//             xtype: 'tagreplacemenuitem',
+//             view: this.view,
+//             record: record
+//         });
+//
+//         return items;
+//     }
+// });
+//
+// Ext.override(Rally.ui.menu.bulk.RecordMenu,{
+//
+// });
+
+Ext.override(Rally.ui.grid.CheckboxModel, {
+    _recordIsSelectable: function(record) {
+        return record.get('_type') === "tag";
+    }
+});
+
+// need to override because grid is failing to refresh on refreshAfterBulkAction function which
+// is called after the bulk action does its thing
+Ext.override(Rally.ui.grid.Grid,{
+    refreshAfterBulkAction: function() {
+        return Ext.create('Deft.Deferred').promise;
+    }
+});
+
+// override the chooser dialog so that the text doesn't say
+// "Apply the following tags for the 0 selected items"
+
+Ext.override(Rally.ui.dialog.TagChooserDialog,{
+    _createChooser: function() {
+        chooser = this.buildChooser();
+        if (chooser) {
+            this.mon(chooser, 'ready', function() {
+                this.fireEvent('ready', this);
+            }, this);
+        } else {
+            this.fireEvent('ready', this);
+        }
+
+        this.add({
+            xtype: 'container',
+            items: [chooser]
+        });
+
+        return chooser;
+    }
+});
+
+Ext.define('CATS.tag-management.utils.menu.bulk.Archive', {
+    alias: 'widget.tagmanagementbulkarchive',
+    extend: 'Rally.ui.menu.bulk.MenuItem',
+
+    mixins: {
+        messageable: 'Rally.Messageable'
+    },
+
+    config: {
+        onBeforeAction: function(){
+//            console.log('onbeforeaction');
+        },
+
+        /**
+         * @cfg {Function} onActionComplete a function called when the specified menu item action has completed
+         * @param Rally.data.wsapi.Model[] onActionComplete.successfulRecords any successfully modified records
+         * @param Rally.data.wsapi.Model[] onActionComplete.unsuccessfulRecords any records which failed to be updated
+         */
+        onActionComplete: function(){
+            console.log('onActionComplete');
+        },
+        text: 'Archive...',
+
+       handler: function () {
+           this._archiveRecords(this.records, null);
+       },
+       predicate: function (records) {
+           return true;
+       }
+    },
+    _archiveRecords: function(records){
+
+      var store = Ext.create('Rally.data.wsapi.batch.Store', {
+          data: records
+      });
+
+      Ext.Array.each(records, function(r){
+        r.set('Archived', true);
+      });
+
+      store.sync({
+        success: function(batch){
+            this.onSuccess(records, [], {}, "");
+        },
+        failure: function(batch){
+
+          this.onSuccess([], records, {}, "Error updating tags to archived.");
+        },
+        scope: this
+      });
+
+    },
+    onSuccess: function (successfulRecords, unsuccessfulRecords, args, errorMessage) {
+        var message = successfulRecords.length + (successfulRecords.length === 1 ? ' item has ' : ' items have ');
+
+        if(successfulRecords.length === this.records.length) {
+            message = message + ' been archived';
+
+            this.publish('bulkActionComplete', message);
+            //Rally.ui.notify.Notifier.show({
+            //    message: message
+            //});
+        } else {
+            if (successfulRecords.length === 0){
+                message = "0 items have been archived";
+            }
+
+            this.publish('bulkActionError', message + ', but ' + unsuccessfulRecords.length + ' failed: ' + errorMessage);
+            //Rally.ui.notify.Notifier.showError({
+            //    message: message + ', but ' + unsuccessfulRecords.length + ' failed: ' + errorMessage,
+            //    saveDelay: 500
+            //});
+        }
+
+        Ext.callback(this.onActionComplete, null, [successfulRecords, unsuccessfulRecords]);
+    }
+});
+
+Ext.define('CATS.tag-management.utils.menu.bulk.Delete', {
+    alias: 'widget.tagmanagementbulkdelete',
+    extend: 'Rally.ui.menu.bulk.MenuItem',
+
+    mixins: {
+        messageable: 'Rally.Messageable'
+    },
+
+    config: {
+        onBeforeAction: function(){
+//            console.log('onbeforeaction');
+        },
+
+        /**
+         * @cfg {Function} onActionComplete a function called when the specified menu item action has completed
+         * @param Rally.data.wsapi.Model[] onActionComplete.successfulRecords any successfully modified records
+         * @param Rally.data.wsapi.Model[] onActionComplete.unsuccessfulRecords any records which failed to be updated
+         */
+        onActionComplete: function(){
+            //         console.log('onActionComplete');
+        },
+        text: 'Delete...',
+
+       handler: function () {
+
+
+
+
+         var numRecords = this.records.length;
+
+
+         Ext.create('Rally.ui.dialog.ConfirmDialog', {
+            cls: 'delete-confirm-dialog',
+            confirmLabel: 'Delete',
+            title: 'Permanent Delete Warning',
+            width: 500,
+            message: '<div>Are you sure you want to delete</div>' +
+                        '<div><span class="item-display-string">' +
+                        numRecords + '</span> Tags?</div>' +
+                    '<div>&nbsp;</div>' +
+                    '<div class="associations-will-be-removed-message">Any associations will be removed.</div>' +
+                    '<div>THERE IS NO UNDO for deleting objects of this type.</div>',
+            listeners: {
+                confirm: function(){
+                  this._deleteRecords(this.records, null);
+                },
+                scope: this
+              }
+          });
+
+       },
+       predicate: function (records) {
+           return true;
+       }
+    },
+    _deleteRecords: function(records){
+
+      var promises = _.map(records, function(r){
+         return this._deleteTag(r);
+      }, this);
+
+      Deft.Promise.all(promises).then({
+        success: function(tags){
+          var successes = [],
+            failures = [];
+
+          Ext.Array.each(tags, function(t){
+             if (/ERROR DELETING/.test(t)){
+               failures.push(t);
+             } else {
+               successes.push(t);
+             }
+          });
+
+          var errorMsg = "";
+          if (failures.length > 0){
+            errorMsg = failures.join('<br/>');
+          }
+          this.onSuccess(successes, failures, {}, errorMsg);
+        },
+        scope: this
+      });
+
+    },
+    _deleteTag: function(tagRecord){
+      var deferred = Ext.create('Deft.Deferred'),
+          ref = tagRecord.get('_ref'),
+          tagOid = Rally.util.Ref.getOidFromRef(ref),
+          me = this;
+
+          //https://rally1.rallydev.com/slm/sbt/tag.sp?oid=130972737712
+          Ext.Ajax.request({
+            url: '/slm/sbt/tag.sp?oid=' + tagOid,
+            method: 'DELETE',
+            success: function(response){
+                deferred.resolve(tagOid);
+            },
+            failure: function(){
+                var text = response.responseText;
+                deferred.resolve("ERROR DELETING " + tagOid + " " + text);
+            }
+        });
+        return deferred.promise;
+    },
+    onSuccess: function (successfulRecords, unsuccessfulRecords, args, errorMessage) {
+
+        var message = successfulRecords.length + (successfulRecords.length === 1 ? ' item has ' : ' items have ');
+
+        if(successfulRecords.length === this.records.length) {
+            message = message + ' been deleted';
+            var oids = Ext.Array.map(successfulRecords, function(record){
+                return record;
+            });
+
+            this.publish('tagsDeleted', oids);
+            this.publish('bulkActionComplete', message);
+        } else {
+            if (successfulRecords.length === 0){
+                message = "0 items have been deleted";
+            }
+
+            this.publish('bulkActionError', message + ', but ' + unsuccessfulRecords.length + ' failed: ' + errorMessage);
+        }
+
+        Ext.callback(this.onActionComplete, null, [successfulRecords, unsuccessfulRecords]);
+    }
+});
+
+Ext.define('CATS.tag-management.utils.menu.TagArchive', {
+    extend: 'Rally.ui.menu.item.RecordMenuItem',
+    alias: 'widget.tagarchivemenuitem',
+    mixins: {
+        messageable: 'Rally.Messageable'
+    },
+    clickHideDelay: 1,
+
+    config: {
+
+        record: undefined,
+
+        handler: function () {
+          this._archiveTag(this.record)
+        },
+
+        predicate: function (record) {
+            return record.get('Archived') !== true;
+        },
+        text: 'Archive'
+
+    },
+
+    _archiveTag: function(tagRecord){
+      var me = this,
+          ref = tagRecord.get('_ref'),
+          tagOid = Rally.util.Ref.getOidFromRef(ref);
+
+       Rally.data.ModelFactory.getModel({
+           type: 'Tag',
+           success: function(model) {
+               model.load(tagOid,{
+                 callback: function(result, operation){
+                   if (operation.wasSuccessful()){
+                     result.set('Archived', true);
+                     result.save({
+                       callback: function(savedResult, operation){
+                          if (!operation.wasSuccessful()){
+                            Rally.ui.notify.Notifier.showError({message: "Error Archiving Tag '" + tagRecord.get('Name') + "':  " + operation.error.errors.join(",")});
+                          } else {
+                            me.publish('tagArchived', tagOid);
+                          }
+                       },
+                       scope: this
+                     });
+                   } else {
+                     Rally.ui.notify.Notifier.showError({message: "Error Retrieving and Archiving Tag '" + tagRecord.get('Name') + "':  " + operation.error.errors.join(",")});
+                   }
+                 },
+                 scope: this
+               });
+           }
+       });
+    }
+});
+
+Ext.define('CATS.tag-management.utils.menu.TagDelete', {
+    extend: 'Rally.ui.menu.item.RecordMenuItem',
+    alias: 'widget.tagdeletemenuitem',
+    mixins: {
+        messageable: 'Rally.Messageable'
+    },
+    clickHideDelay: 1,
+
+    config: {
+
+        record: undefined,
+
+        handler: function () {
+          this._deleteTag(this.record)
+        },
+
+        predicate: function (record) {
+            return true;
+        },
+        text: 'Delete'
+
+    },
+
+    _deleteTag: function(tagRecord){
+      var ref = tagRecord.get('_ref'),
+          tagOid = Rally.util.Ref.getOidFromRef(ref),
+          me = this;
+
+
+          //https://rally1.rallydev.com/slm/sbt/tag.sp?oid=130972737712
+          Ext.Ajax.request({
+            url: '/slm/sbt/tag.sp?oid=' + tagOid,
+            method: 'DELETE',
+            success: function(response){
+                var text = response.responseText;
+                me.publish('tagDeleted', tagOid);
+            }
+        });
+    }
+});
+
+Ext.define('CATS.tag-management.utils.TagMetrics',{
+    logger: new Rally.technicalservices.Logger(),
+    tagHash: {},
+    mixins: {
+           observable: 'Ext.util.Observable',
+       },
+
+    tagsLoaded: false,
+    tagUsageLoaded: false,
+    tagHistoryLoaded: false,
+
+    constructor: function(config){
+       this.getExtendedTagModel();
+       this.mixins.observable.constructor.call(this, config);
+    },
+
+    addTagRecords: function(tagRecords){
+       this._initializeTagData(tagRecords);
+       this.tagsLoaded = true;
+    },
+    archiveTags: function(tags){
+       if (!Ext.isArray(tags)){
+         tags = [tags];
+       }
+       Ext.Array.each(tags, function(t){
+         this.tagHash[t].Archived = true;
+       }, this);
+    },
+    deleteTags: function(tags){
+      if (!Ext.isArray(tags)){
+        tags = [tags];
+      }
+      Ext.Array.each(tags, function(t){
+        delete this.tagHash[t]
+      }, this);
+    },
+    updateTagUsage: function(tag, records){
+
+       var tagOid = Rally.util.Ref.getOidFromRef(tag._ref);
+       this.tagHash[tagOid].count = 0;
+       //this.tagHash[tagOid].lastUsed = null;
+       for (var i=0; i< records.length; i++){
+         var tags = records[i].get('Tags') && records[i].get('Tags')._tagsNameArray;
+         for (var j=0; j<tags.length; j++){
+           var oid = Rally.util.Ref.getOidFromRef(tags[j]._ref);
+           if (oid === tagOid){
+             this.tagHash[tagOid].count++;
+           }
+         }
+       }
+    },
+    _initializeTagData: function(tagRecords){
+      this.logger.log('_initializeTagData');
+      this.tagHash = {};
+
+      for (var i=0; i<tagRecords.length; i++){
+        var tagData = tagRecords[i].getData();
+        tagData.count = 0;
+        this.tagHash[tagData.ObjectID] = tagData;
+      }
+    },
+
+    addCurrentSnapshots: function(snapshots){
+      var tagHash = this.tagHash;
+      this.reset();
+
+      for (var i=0; i<snapshots.length; i++){
+        var tags = snapshots[i].raw.Tags || [];
+           for (var j=0; j<tags.length; j++){
+             if (!tagHash[tags[j]]){
+               tagHash[tags[j]] = { count: 0 };
+             }
+             tagHash[tags[j]].count++;
+           }
+      }
+
+      this.tagUsageLoaded = true;
+      this.tagHash = tagHash;
+      this.fireEvent('update', this);
+
+    },
+
+    addCurrentWsapiRecords: function(wsapiRecords){
+      this.logger.log('addWsapiRecords', wsapiRecords.length);
+      this.reset();
+      tagHash = this.tagHash;
+
+      for (var i=0; i<wsapiRecords.length; i++){
+
+        var tags = wsapiRecords[i].get('Tags') && wsapiRecords[i].get('Tags')._tagsNameArray;
+
+        if (tags.length > 0){
+          _.each(tags, function(t){
+            var oid = Rally.util.Ref.getOidFromRef(t._ref);
+            tagHash[oid].count++;
+          });
+        }
+      }
+
+      this.tagUsageLoaded = true;
+      this.tagHash = tagHash;
+      this.fireEvent('update', this);
+
+    },
+    _isLoaded: function(showHistory){
+        return this.tagUsageLoaded && this.tagsLoaded && ((showHistory && this.tagHistoryLoaded) || !showHistory);
+    },
+    addHistoricalSnapshots: function(snapshots){
+      var tagHash = this.tagHash;
+
+      for (var i=0; i<snapshots.length; i++){
+        var tags = snapshots[i].raw.Tags || [],
+            previousTags = snapshots[i].raw._PreviousValues && snapshots[i].raw._PreviousValues.Tags || [];
+            tagDate = Rally.util.DateTime.fromIsoString(snapshots[i].raw._ValidFrom);
+
+           var changedTags = _.difference(tags, previousTags);
+           for (var j=0; j<changedTags.length; j++){
+
+             if (tagHash[tags[j]] && (!tagHash[tags[j]].lastUsed || tagHash[tags[j]].lastUsed < tagDate)){
+               tagHash[tags[j]].lastUsed = tagDate;
+             }
+           }
+      }
+
+      this.tagHistoryLoaded = true;
+      this.tagHash = tagHash;
+      this.fireEvent('update', this);
+    },
+
+    reset: function(){
+      Ext.Object.each(this.tagHash, function(key,obj){
+        obj.count = 0;
+        obj.lastUsed = null;
+      });
+      this.tagUsageLoaded = false;
+      this.tagHistoryLoaded = false;
+    },
+
+    getData: function(showDups, usageLessThan, monthsSinceUsed, showArchived, showUnused, nameContains){
+      this.logger.log('getData', showDups, usageLessThan, monthsSinceUsed, showArchived, showUnused, nameContains);
+
+      var data = Ext.Object.getValues(this.tagHash);
+
+      var beforeDate = null;
+      if (monthsSinceUsed){
+        beforeDate = Rally.util.DateTime.add(new Date(), "month", -monthsSinceUsed);
+      }
+      var nameRegexp = null;
+      if (nameContains){
+         nameRegexp = new RegExp(nameContains, "gi");
+      }
+
+      if (usageLessThan || monthsSinceUsed || !showArchived || !showUnused || nameRegexp){
+        var filteredData = [];
+        for (var i=0; i< data.length; i++){
+          d = data[i];
+
+          var show = true;
+
+          if (nameRegexp && !nameRegexp.test(d.Name)){
+              show = false;
+          }
+
+          if (usageLessThan && (d.count >= usageLessThan)){
+            show = false;
+          }
+
+          if (beforeDate && beforeDate < d.lastUsed){
+             show = false;
+          }
+
+          if (!showArchived && d.Archived){
+            show = false;
+          }
+          if (!showUnused && d.count === 0){
+            show = false;
+          }
+
+          if (show){
+            filteredData.push(d);
+          }
+        }
+        // data = Ext.Array.filter(data, function(d){
+        //   var show = true;
+        //
+        //   if (!nameRegexp.test(d.Name)){
+        //       return false;
+        //   }
+        //
+        //   if (usageLessThan && (d.count >= usageLessThan)){
+        //     return false;
+        //   }
+        //
+        //   if (beforeDate && beforeDate < d.lastUsed){
+        //      return false;
+        //   }
+        //
+        //   if (!showArchived && d.Archived){
+        //     return false;
+        //   }
+        //   if (!showUnused && d.count === 0){
+        //     return false;
+        //   }
+        //
+        //   return true;
+        // });
+        data = filteredData;
+      }
+
+      if (showDups){
+        data = this._findDups(data);
+      }
+
+      return {
+         data: data,
+         model: this.tagModel,
+         pageSize: data.length
+      };
+
+    },
+    _findDups: function(tags){
+      var dups = [];
+
+          for (var i = 0; i < tags.length; i++) {
+            for (var j = i + 1 ; j < tags.length; j++) {
+              if (tags[i].Name.toLowerCase().trim() == tags[j].Name.toLowerCase().trim()) {
+                 dups.push(tags[i].ObjectID);
+                 dups.push(tags[j].ObjectID);
+              }
+            }
+          }
+          dups = _.uniq(dups);
+
+          return _.map(dups, function(d){ return this.tagHash[d]; }, this);
+
+    },
+      getExtendedTagModel: function(){
+        return Rally.data.ModelFactory.getModel({
+              type: 'tag'
+          }).then({
+              success: function(model) {
+                  var fields = [{
+                    name: 'count'
+                  },{
+                    name: 'lastUsed'
+                  }];
+                  this.tagModel = Ext.define('TagMetricsModel', {
+                      extend: model,
+                      fields: fields
+                  });
+                  this.fireEvent('ready', this);
+              },
+              scope: this
+          });
+      }
+
+});
+
+Ext.define('CATS.tag-management.utils.menu.TagReplace', {
+    extend: 'Rally.ui.menu.item.RecordMenuItem',
+    alias: 'widget.tagreplacemenuitem',
+
+    clickHideDelay: 1,
+    mixins: {
+      messageable: 'Rally.Messageable'
+    },
+    config: {
+
+        record: undefined,
+
+        handler: function () {
+            Ext.create('Rally.ui.dialog.TagChooserDialog', {
+                autoShow: true,
+                records: [],
+                title: 'Choose a Tag to Replace With',
+                height: 250,
+                listeners: {
+                    tagselect: function(dialog,tags){
+                        this._replaceTags(tags.full);
+                    },
+                    scope: this
+                }
+            });
+    //      Ext.create('CATS.tag-management.utils.TagDialog', {
+    //        autoShow: true,
+    //        draggable: true,
+    //        width: 300,
+    //        title: 'Choose a Tag to Replace With',
+    //        listeners: {
+    //           confirm: this._replaceTags,
+    //           cancel: function(){},
+    //           scope: this
+    //        }
+    //    });
+
+
+        },
+        predicate: function (record) {
+            return true;
+        },
+
+        text: 'Replace With...'
+
+    },
+    _getModels: function(){
+        return ['Defect', 'DefectSuite', 'UserStory','TestSet','Task'].concat(this.portfolioItemTypes);
+    },
+    _replaceTags: function(tag){
+
+        var newTagRefs = [],
+          newTagNames = [],
+          oldRecord = this.record;
+
+      if (Ext.isArray(tag)){
+        newTagRefs = _.map(tag, function(t){ return  {'_ref': t.get('_ref')}; });
+        newTagNames = _.map(tag, function(t){ return t.get('Name'); });
+      } else {
+
+        newTagRefs =  [{'_ref': tag.get('_ref')}];
+        newTagNames = [tag.get('Name')];
+      }
+      var replaceTagRef = oldRecord.get('_ref'),
+          replaceTagName = oldRecord.get('Name');
+      //console.log('replace', replaceTagName, 'with', newTagNames);
+
+      Ext.create('Rally.data.wsapi.artifact.Store', {
+         models: this._getModels(),
+         filters: [{
+            property: 'Tags',
+            operator: 'contains',
+            value: replaceTagRef
+         }],
+         context: {project: null},
+         fetch: ['Tags', 'Name', 'ObjectID']
+       }).load({
+         callback: function(records, operation, success){
+
+            Ext.Array.each(records, function(r){
+              var tags = _.filter(r.get('Tags') && r.get('Tags')._tagsNameArray || [], function(t){
+                 return t._ref !== replaceTagRef;
+              });
+              tags = tags.concat(newTagRefs);
+
+              r.set('Tags', tags);
+            });
+
+            var bulkStore = Ext.create('Rally.data.wsapi.batch.Store', {
+                data: records
+            });
+
+            bulkStore.sync({
+               success: function(batch){
+                 var msg = Ext.String.format("{0} records updated.  Tag '{1}'' replaced by '{2}'",records.length,replaceTagName,newTagNames.join(', ')) ;
+                 Rally.ui.notify.Notifier.show({message: msg})
+                 newTagRefs.push({'_ref': replaceTagRef});
+                 this.publish('tagDataUpdated', newTagRefs);
+
+               },
+               failure: function(batch){
+                 Rally.ui.notify.Notifier.showError({message: "Error updating Tags."})
+               },
+               scope: this
+            });
+         }
+       });
+       this._archiveTag(replaceTagRef);
+
+    },
+    _archiveTag: function(tagRef){
+      var tagOid = Rally.util.Ref.getOidFromRef(tagRef);
+        Rally.data.ModelFactory.getModel({
+           type: 'Tag',
+           success: function(model) {
+               model.load(tagOid,{
+                 callback: function(result, operation){
+                   if (operation.wasSuccessful()){
+                     result.set('Archived', true);
+                     result.save({
+                       callback: function(savedResult, operation){
+                          if (!operation.wasSuccessful()){
+                            Rally.ui.notify.Notifier.showError({message: "Error Archiving Tag '" + replaceTagName + "':  " + operation.error.errors.join(",")});
+                          } else {
+                            this.publish('tagArchived', tagOid);
+                          }
+                       },
+                       scope: this
+                     });
+                   }
+                 },
+                 scope: this
+               });
+           },
+           scope: this
+       });
+    },
+    constructor:function (config) {
+        this.initConfig(config);
+        this.callParent(arguments);
+         this.mixins.messageable.constructor.call(this, config);
+    }
+});
+
+Ext.define("tag-management", {
+    extend: 'Rally.app.App',
+    componentCls: 'app',
+    logger: new Rally.technicalservices.Logger(),
+    defaults: { margin: 10 },
+    items: [
+        {xtype:'container',itemId:'message_box',tpl:'Hello, <tpl>{_refObjectName}</tpl>'},
+        {xtype:'container',itemId:'display_box'}
+    ],
+
+    integrationHeaders : {
+        name : "tag-management"
+    },
+
+    config: {
+      defaultSettings: {
+        useLookback: false
+      }
+    },
+
+    launch: function() {
+
+      this.tagMetrics = Ext.create('CATS.tag-management.utils.TagMetrics',{});
+      //this.tagMetrics.on('refreshcount', this._updateTagData, this);
+      this.subscribe('tagDataUpdated', this._updateTagData, this);
+      this.subscribe('tagArchived', this._updateArchivedTagData, this);
+      this.subscribe('tagDeleted', this._updateDeletedTagData, this);
+      this.subscribe('tagsDeleted', this._updateDeletedTagData, this);
+
+      this._fetchPortfolioItemTypes().then({
+        success: this._initializeApp,
+        failure: this._showErrorNotification,
+        scope: this
+      });
+      this._fetchTags();
+      this._fetchCurrentTagUsageData();
+
+      // this._fetchTags().then({
+      //   success: this._buildTagMetrics,
+      //   failure: this._showErrorNotification,
+      //   scope: this
+      // }).always(function(){
+      //   this.setLoading(false);
+      // },this);
+
+    },
+    _showErrorNotification: function(msg){
+      Rally.ui.notify.Notifier.showError({message: msg});
+    },
+
+    _updateArchivedTagData: function(tags){
+      this.logger.log('updateArchivedTagData');
+        this.tagMetrics.archiveTags(tags);
+        this._updateView();
+    },
+    _updateDeletedTagData: function(tags){
+       this.tagMetrics.deleteTags(tags);
+       var msg = "1 Tag Deleted.";
+       if (Ext.isArray(tags)){
+          msg = tags.length + ' Tags Deleted.';
+       }
+       Rally.ui.notify.Notifier.show({message: msg});
+       this._updateView();
+    },
+    _updateTagData: function(tags){
+       this.logger.log('_updateTagData', tags);
+       this.setLoading('Updating Tag Usage...');
+       this._fetchSpecificTagArtifacts(tags).then({
+          success: this._updateView,
+          failure: this._showErrorNotification,
+          scope: this
+       }).always(function(){
+         this.setLoading(false);
+       },this);
+    },
+    _updateView: function(bt){
+      this.logger.log('_updateView', bt);
+      this.setLoading(false);
+      this.tagMetrics.un('update');
+    //  this.unsubscribe('tagDataLoaded');
+
+      this.down('#gridBox').removeAll();
+
+      var data = this.tagMetrics.getData(this.getShowDups(), this.getUsageLessThan(), this.getMonthsSinceUsed(), this.getShowArchived(), this.getShowUnused(), this.getNameContains()),
+          msg = "No Tags found that meet the selected filters.";
+
+      if (this.getShowDups()){
+        msg = "No duplicate Tags found."
+      }
+
+      this.store = Ext.create('Rally.data.custom.Store', data);
+
+      var grid = this.down('#gridBox').add({
+        xtype: 'rallygrid',
+        store: this.store,
+        columnCfgs: this._getColumnCfgs(),
+        showPagingToolbar: false,
+        enableBulkEdit: true,
+        enableEditing: false,
+        scroll: 'vertical',
+        viewConfig: {
+           emptyText: '<div class="grid-view-empty">' + msg +'</div>'
+        },
+        bulkEditConfig: {
+          items: [{
+              xtype: 'tagmanagementbulkarchive'
+          },{
+              xtype: 'tagmanagementbulkdelete'
+          }]
+        },
+        showRowActionsColumn: false,
+        showPagingToolbar: false
+       });
+       var height = Math.max(this.getHeight() - this.down('#selectorBox').getHeight() - this.down('#toggleBox').getHeight(), 100);
+       grid.setHeight(height);
+
+    },
+
+    _getColumnCfgs: function(){
+      var portfolioItemTypes = this.portfolioItemTypes,
+        cols = [{
+        xtype: 'rallyrowactioncolumn',
+        rowActionsFn: function (record) {
+            return [
+                {
+                    xtype: 'tagreplacemenuitem',
+                    record: record,
+                    portfolioItemTypes: portfolioItemTypes
+                },{
+                    xtype: 'tagarchivemenuitem',
+                    record: record
+                },{
+                    xtype: 'tagdeletemenuitem',
+                    record: record
+                }
+            ];
+        }
+      },{
+        dataIndex: 'Name',
+        text: 'Name'
+      }];
+
+      if (this.getShowArchived()){
+        cols.push({
+          dataIndex: 'Archived',
+          text: 'Archived'
+        });
+      }
+
+      if (this.getShowHistory()){
+        cols.push({
+          dataIndex: 'lastUsed',
+          text: 'Last Used'
+        });
+      }
+
+      cols.push({
+        dataIndex: 'count',
+        text: 'Uses',
+        renderer: function(v){
+          return v || "--";
+        }
+      });
+
+      cols.push({
+        dataIndex: 'CreationDate',
+        text: 'Date Created'
+      });
+      return cols;
+    },
+    _initializeApp: function(portfolioItemTypes){
+       this.portfolioItemTypes = _.map(portfolioItemTypes, function(p){ return p.get('TypePath'); });
+       this.logger.log('_initializeApp', this.portfolioItemTypes);
+       this.removeAll();
+       var toggleBox = this.add({
+         xtype: 'container',
+         itemId: 'toggleBox',
+         layout: 'hbox'
+       });
+       var selectorBox = this.add({
+         xtype: 'container',
+         itemId: 'selectorBox',
+         layout: 'hbox'
+       });
+
+       var gridBox = this.add({
+         xtype: 'container',
+         itemId: 'gridBox'
+       });
+
+       this._addToggleButton('btDuplicates', 'icon-copy','Show Duplicate Tags', this._toggleButton);
+       this._addToggleButton('btHistory', 'icon-history','Show Last Used Date', this._fetchHistory);
+       this._addToggleButton('btArchived', 'icon-archive','Show Archived Tags', this._toggleButton);
+       this._addToggleButton('btUnused', 'icon-none','Show Unused Tags', this._toggleButton);
+
+       var name = selectorBox.add({
+         xtype: 'rallytextfield',
+         fieldLabel: 'Name contains',
+         labelAlign: 'right',
+         itemId: 'nameContains',
+         margin: 5,
+         labelWidth: 100,
+         height: 22,
+         width: 200
+       });
+
+
+       var usage = selectorBox.add({
+         xtype: 'rallynumberfield',
+         fieldLabel: 'Usage Less Than',
+         labelAlign: 'right',
+         itemId: 'usedFewerThan',
+         margin: 5,
+         labelWidth: 100,
+         width: 150,
+         minValue: 1,
+         maxValue: 1000
+       });
+      // usage.on('change', this._updateView, this);
+
+       var usedSince = selectorBox.add({
+         xtype: 'rallynumberfield',
+         fieldLabel: 'Months Since Last Usage',
+         labelAlign: 'right',
+         itemId: 'monthsSinceUsed',
+         margin: 5,
+         labelWidth: 150,
+         width: 200,
+         minValue: 0,
+         maxValue: 120
+       });
+    //   usedSince.on('change', this._updateView, this);
+
+
+      this._toggleButton();
+
+       var bt = toggleBox.add({
+         xtype: 'rallybutton',
+         text: 'Update',
+         margin: 5
+       });
+       bt.on('click',this._updateRequested, this);
+
+
+      //  if (this.getUseLookback()){
+      //    this.setLoading('Loading Tag Usage Data from the Lookback API');
+      //    this.logger.log('back BEGIN');
+      //    this.back().then({
+      //      success: function(snapshots){
+      //        this.logger.log('snapshot count', snapshots.length);
+       //
+      //        this.tagMetrics.addCurrentSnapshots(snapshots)
+      //      },
+      //      failure: this._showErrorNotification,
+      //      scope: this
+      //    }).always(function(){
+      //      this.logger.log('back END');
+      //      this.setLoading(false);
+      //    },this );
+       //
+      //  } else {
+      //    this.setLoading('Loading Tag Usage Data from WSAPI');
+      //    this.logger.log('_fetchCurrentTagDataFromWsapi BEGIN');
+      //    this._fetchCurrentTagDataFromWsapi().then({
+      //      success: function(results){
+      //        var records = _.flatten(results);
+      //        this.logger.log('record count', records.length);
+      //        this.tagMetrics.addCurrentWsapiRecords(records);
+      //      },
+      //      failure: this._showErrorNotification,
+      //      scope: this
+      //    }).always(function(){
+      //      this.logger.log('_fetchCurrentTagDataFromWsapi END');
+      //      this.setLoading(false);
+      //    },this );
+      //  }
+
+
+    },
+    _addToggleButton: function(itemId, iconCls, toolTip, fn){
+      var bt = this.down('#toggleBox').add({
+        xtype: 'rallybutton',
+        iconCls: iconCls,
+        cls: 'secondary rly-small',
+        enableToggle: true,
+        itemId: itemId,
+        toolTipText: toolTip,
+        margin: 5
+      });
+      bt.on('toggle', fn, this);
+    },
+    _updateRequested: function(){
+       this.logger.log('_updateRequested');
+      // this.subscribe('tagDataLoaded', this._updateView, this);
+       if (this.tagMetrics._isLoaded(this.getShowHistory())){
+         this._updateView();
+       } else {
+         this.tagMetrics.on('update', this._updateView, this);
+         this.setLoading(true);
+       }
+
+      //  var me = this;
+      //  Ext.defer(function(){
+      //    me.publish('requestDataStatus', me.getShowHistory());
+      //  },1000, this);
+
+    },
+    // _buildTagMetrics: function(tagRecords){
+    //   this.tagMetrics = Ext.create('CATS.tag-management.utils.TagMetrics',{
+    //     tags: tagRecords,
+    //     listeners: {
+    //       ready: this._initializeApp,
+    //       update: this._updateView,
+    //       scope: this
+    //     }
+    //   });
+    // },
+    getShowHistory: function(){
+      return this.down('#btHistory').pressed;
+    },
+    getShowDups: function(){
+      return this.down('#btDuplicates').pressed;
+    },
+    getMonthsSinceUsed: function(){
+      return this.down('#monthsSinceUsed').getValue() || 0;
+    },
+    getNameContains: function(){
+      return this.down('#nameContains').getValue() || null;
+    },
+    getUsageLessThan: function(){
+      return this.down('#usedFewerThan').getValue() || 0;
+    },
+    getShowArchived: function(){
+      return this.down('#btArchived').pressed;
+    },
+    getShowUnused: function(){
+      return this.down('#btUnused').pressed;
+    },
+    getUseLookback: function(){
+      if ((this.getSetting('useLookback') === "true") || (this.getSetting('useLookback') === true)){
+        return true;
+      };
+      return false;
+    },
+    _getModels: function(){
+      return ['Defect', 'DefectSuite', 'UserStory','TestSet','Task'].concat(this.portfolioItemTypes);
+
+    },
+    _fetchSpecificTagArtifacts: function(tags){
+        var deferred = Ext.create('Deft.Deferred');
+
+        var filters = _.map(tags, function(t){
+          return {
+            property: 'Tags',
+            operator: 'contains',
+            value: t._ref
+          };
+        });
+
+        if (filters.length > 1){
+          filters = Rally.data.wsapi.Filter.or(filters);
+        }
+        var tagMetrics = this.tagMetrics;
+        Ext.create('Rally.data.wsapi.artifact.Store',{
+          models: this._getModels(),
+          fetch: ['Tags','Name'],
+          filters: filters,
+          context: {project: null}
+        }).load({
+          callback: function(records, operation){
+             if (operation.wasSuccessful()){
+               Ext.Array.each(tags, function(t){
+                 tagMetrics.updateTagUsage(t, records);
+               });
+               deferred.resolve();
+             } else {
+                deferred.reject("Error updating Tag counts:  " + operation.error.errors.join(','));
+             }
+          }
+        });
+
+        return deferred.promise;
+    },
+    _fetchHistory: function(bt, pressed){
+      this.logger.log('_fetchHistory', pressed);
+      if (pressed) {
+
+        this._toggleButton(bt, pressed, true)
+        this._fetchHistoricalTagData().then({
+          success: function(snapshots){
+            this.tagMetrics.addHistoricalSnapshots(snapshots);
+          },
+          failure: this._showErrorNotification,
+          scope: this
+        });
+
+      } else {
+        this._toggleButton(bt, pressed);
+      }
+
+    },
+    _toggleButton: function(bt, pressed, noAction){
+      if (bt){
+        if (pressed){
+            bt.removeCls('secondary');
+            bt.addCls('primary');
+        } else {
+          bt.removeCls('primary');
+          bt.addCls('secondary');
+        }
+      }
+
+      if (this.getShowDups()){
+        this.down('#monthsSinceUsed').hide();
+        this.down('#usedFewerThan').hide();
+      } else {
+        this.down('#usedFewerThan').show();
+        if (this.getShowHistory()){
+          this.down('#monthsSinceUsed').show();
+        } else {
+          this.down('#monthsSinceUsed').hide();
+        }
+      }
+
+      // if (noAction) { return; }
+      // this._updateView();
+
+    },
+
+    _fetchCurrentTagDataFromWsapi: function(){
+        this.logger.log('_fetchCurrentTagDataFromWsapi');
+        return Deft.Promise.all([
+            // this._fetchCurrentTagDataForModelFromWsapi("PortfolioItem/Feature"),
+            // this._fetchCurrentTagDataForModelFromWsapi("PortfolioItem/Initiative"),
+            this._fetchCurrentTagDataForModelFromWsapi("PortfolioItem"),
+//            this._fetchCurrentTagDataForModelFromWsapi("SchedulableArtifact"),
+            this._fetchCurrentTagDataForModelFromWsapi("HierarchicalRequirement"),
+            this._fetchCurrentTagDataForModelFromWsapi("Defect"),
+            this._fetchCurrentTagDataForModelFromWsapi("TestSet"),
+            this._fetchCurrentTagDataForModelFromWsapi("DefectSuite"),
+            this._fetchCurrentTagDataForModelFromWsapi("TestCase")
+        ]).then({
+          success: function(results){
+            this.logger.log('_fetchCurrentTagDataFromWsapi Success');
+            var records = _.flatten(results);
+            this.tagMetrics.addCurrentWsapiRecords(records);
+          },
+          failure: this._showErrorNotification,
+          scope: this
+        });
+    },
+
+    _fetchCurrentTagDataForModelFromWsapi: function(modelName){
+        var deferred = Ext.create('Deft.Deferred');
+
+        Ext.create('Rally.data.wsapi.Store',{
+           model: modelName,
+           fetch: ['Tags','ObjectID','Name','LastUpdateDate'],
+           filters: this.getArtifactFilters(),
+           pageSize: 2000,
+           context: { project: null },
+           limit: "Infinity"
+        }).load({
+          callback: function(records,operation,success){
+            if (operation.wasSuccessful()){
+                deferred.resolve(records);
+            } else {
+                deferred.reject(operation.error.errors.join(","));
+            }
+          }
+        });
+        return deferred.promise;
+    },
+    _fetchPortfolioItemTypes: function(){
+      return this._fetchWsapiRecords({
+        model: 'TypeDefinition',
+        fetch: ['Name','TypePath','Ordinal'],
+        filters: [{
+          property: 'TypePath',
+          operator: 'contains',
+          value: 'PortfolioItem/'
+        }],
+        sorters: [{
+          property: 'Ordinal',
+          direction: 'ASC'
+        }]
+      });
+    },
+    _fetchWsapiRecords: function(config){
+        var deferred = Ext.create('Deft.Deferred');
+        var me = this;
+
+        if (!config.limit){ config.limit = "Infinity"; }
+        if (!config.pageSize){ config.pageSize = 2000; }
+
+        this.logger.log("Starting load:",config);
+
+        Ext.create('Rally.data.wsapi.Store', config).load({
+            callback : function(records, operation, successful) {
+                if (successful){
+                    deferred.resolve(records);
+                } else {
+                    me.logger.log("Failed: ", operation);
+                    deferred.reject('Problem fetching: ' + operation.error.errors.join('. '));
+                }
+            }
+        });
+        return deferred.promise;
+    },
+    getTagFilters: function(){
+      var nameValue = this.down('#txtName') && this.down('#txtName').getValue();
+        if (nameValue){
+          return [{
+            property: 'Name',
+            operator: 'contains',
+            value: nameValue
+          }];
+        }
+        return [];
+    },
+    getArtifactFilters: function(){
+        var nameValue = this.down('#txtName') && this.down('#txtName').getValue();
+        if (nameValue){
+          return [{
+            property: 'Tags.Name',
+            operator: 'contains',
+            value: nameValue
+          }];
+        }
+
+        return [{
+          property: 'Tags.ObjectID',
+          operator: '>',
+          value: 0
+        }];
+    },
+    _fetchTags: function(){
+      var deferred = Ext.create('Deft.Deferred');
+
+      Ext.create('Rally.data.wsapi.Store',{
+         model: 'Tag',
+         fetch: ['ObjectID','Name','Archived','CreationDate'],
+         pageSize: 2000,
+         //filters: this.getTagFilters(),
+         limit: "Infinity"
+      }).load({
+        callback: function(records,operation,success){
+          if (operation.wasSuccessful()){
+            this.logger.log('_fetchTags success', records.length);
+              this.tagMetrics.addTagRecords(records);
+              deferred.resolve(records);
+          } else {
+             var msg = operation && operation.error && operation.error.errors && operation.error.errors.join(',');
+             this._showErrorNotification(msg);
+             deferred.reject(msg);
+          }
+        },
+        scope: this
+      });
+      return deferred.promise;
+    },
+    _fetchHistoricalTagData: function(){
+      var deferred = Ext.create('Deft.Deferred');
+
+      Ext.create('Rally.data.lookback.SnapshotStore',{
+         fetch: ['Tags','_ValidFrom','_ValidTo',"_PreviousValues.Tags"],
+         find: {
+            "Tags": this.getLookbackTagFilterValue(),
+            "_PreviousValues.Tags": {$exists: true}
+         },
+         removeUnauthorizedSnapshots: true,
+         limit: "Infinity",
+         useHttpPost: true
+      }).load({
+        callback: function(records,operation,success){
+          if (operation.wasSuccessful()){
+              this.logger.log('_fetchHistoricalTagData success', records.length);
+              this.tagMetrics.addHistoricalSnapshots(records);
+              deferred.resolve(records);
+          } else {
+            var msg = operation && operation.error && operation.error.errors && operation.error.errors.join(',');
+            this._showErrorNotification(msg);
+            deferred.reject(msg);
+          }
+        },
+        scope: this
+      });
+      return deferred.promise;
+    },
+    getLookbackTagFilterValue: function(){
+        var nameValue = this.down('#txtName') && this.down('#txtName').getValue();
+        if (nameValue){
+           //todo return array of tag oids that match.
+        }
+
+        return {$exists: true};
+    },
+    _fetchCurrentTagUsageData: function(){
+        if (this.getUseLookback()){
+            this._fetchCurrentTagDataFromLookback();
+        } else {
+            this._fetchCurrentTagDataFromWsapi();
+        }
+    },
+    _fetchCurrentTagDataFromLookback: function(){
+      var deferred = Ext.create('Deft.Deferred');
+      this.logger.log('_fetchCurrentTagDataFromLookback');
+      Ext.create('Rally.data.lookback.SnapshotStore',{
+
+         fetch: ['Tags','_ValidFrom','_ValidTo','_TypeHierarchy'],
+         find: {
+            "Tags": this.getLookbackTagFilterValue(),
+            "__At": "current"
+          },
+          removeUnauthorizedSnapshots: true,
+         limit: Infinity,
+         useHttpPost: true
+      }).load({
+        callback: function(records,operation,success){
+          if (operation.wasSuccessful()){
+            this.logger.log('_fetchCurrentTagDataFromLookback', records.length, operation);
+              this.tagMetrics.addCurrentSnapshots(records);
+              deferred.resolve(records);
+          } else {
+            var msg = operation && operation.error && operation.error.errors && operation.error.errors.join(',') || "Error loading current tag data from Lookback.";
+            this._showErrorNotification(msg);
+            deferred.reject(msg);
+          }
+        },
+        scope: this
+      });
+      return deferred.promise;
+    },
+    getOptions: function() {
+        return [
+            {
+                text: 'About...',
+                handler: this._launchInfo,
+                scope: this
+            }
+        ];
+    },
+    getSettingsFields: function(){
+      return [{
+        name: 'useLookback',
+        xtype: 'rallycheckboxfield',
+        fieldLabel: 'Enable Lookback Usage',
+        labelAlign: 'right'
+      }];
+    },
+    _launchInfo: function() {
+        if ( this.about_dialog ) { this.about_dialog.destroy(); }
+        this.about_dialog = Ext.create('Rally.technicalservices.InfoLink',{});
+    },
+
+    isExternal: function(){
+        return typeof(this.getAppId()) == 'undefined';
+    }
+
+});
+
+            
+               Rally.launchApp('tag-management', {
+                   name: 'Tag Management'
+               });
+        });
+    </script>
+    
+    <style type="text/css">
+
+.app {
+}
+.tsinfolink {
+    position:absolute;
+    right:0px;
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    text-align: center;
+    color: white;
+    background: #C0C0C0;
+    border-style: solid;
+    border-width: 1px;
+    margin-top: 25px;
+    margin-right: 5px;
+    cursor: pointer;
+}
+
+.x-window.chooser-dialog label {
+  text-transform: none;
+}
+
+    </style>
+
+</head>
+<body></body>
+</html>
